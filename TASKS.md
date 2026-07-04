@@ -12,7 +12,7 @@ Cada tarea está pensada para entrar en una sesión de 1-3hs. Tildar con `[x]` a
 ## Milestone 1 — Construcción (casa/terreno)
 Diseño cerrado en [docs/design/milestone1_construccion.md](docs/design/milestone1_construccion.md). Grid de 1m, sin modo de construcción separado, menú radial con `G`, alcance de 5m, rotación libre con `R` + mouse, gratis e ilimitado por ahora.
 
-- [ ] Crear piezas placeholder: `wall.tscn`, `floor.tscn`, `roof.tscn` (StaticBody3D + colisión, cubos grises)
+- [x] Crear piezas placeholder: `wall.tscn`, `floor.tscn`, `roof.tscn` (StaticBody3D + colisión, cubos grises)
 - [ ] Nodo/script `BuildSystem`: raycast desde cámara + snap a grid de 1m
 - [ ] Preview fantasma: instancia semi-transparente que sigue el raycast, verde/rojo según validez
 - [ ] Menú radial (`Control`) con Pared/Piso/Techo/Manos vacías, se abre manteniendo `G`
