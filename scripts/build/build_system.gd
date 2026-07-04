@@ -146,14 +146,17 @@ func _cell_has_floor(center: Vector3) -> bool:
 			return true
 	return false
 
-func _faces_away_from_floor(near_cell: Vector3, far_cell: Vector3) -> bool:
-	var near_has_floor: bool = _cell_has_floor(near_cell)
-	var far_has_floor: bool = _cell_has_floor(far_cell)
-	if near_has_floor and not far_has_floor:
+## Decide hacia qué lado del eje positivo (norte o este) debe mirar la cara linda,
+## mirando únicamente las dos celdas fijas a los lados del borde — nunca la posición
+## del jugador — para que el resultado no cambie según desde dónde se apunte.
+func _face_positive_side(positive_cell: Vector3, negative_cell: Vector3) -> bool:
+	var positive_has_floor: bool = _cell_has_floor(positive_cell)
+	var negative_has_floor: bool = _cell_has_floor(negative_cell)
+	if negative_has_floor and not positive_has_floor:
 		return true
-	if far_has_floor and not near_has_floor:
+	if positive_has_floor and not negative_has_floor:
 		return false
-	return false
+	return true
 
 func _snap_wall(point: Vector3) -> Dictionary:
 	var cx: float = round(point.x / grid_size)
@@ -165,20 +168,20 @@ func _snap_wall(point: Vector3) -> Dictionary:
 	if abs(fx) >= abs(fz):
 		# Pared corriendo en Z, en el borde este/oeste de la celda (cx,cz).
 		var edge_x: float = (cx + (0.5 if fx >= 0.0 else -0.5)) * grid_size
-		var near_cell := Vector3(cx * grid_size, y, cz * grid_size)
-		var far_cell := Vector3((cx + (1.0 if fx >= 0.0 else -1.0)) * grid_size, y, cz * grid_size)
-		var flip: bool = _faces_away_from_floor(near_cell, far_cell) != manual_flip
-		var edge_z: float = (cz + (0.5 if flip else -0.5)) * grid_size
-		var rot: float = (PI / 2.0) if flip else (-PI / 2.0)
+		var east_cell := Vector3(edge_x + grid_size / 2.0, y, cz * grid_size)
+		var west_cell := Vector3(edge_x - grid_size / 2.0, y, cz * grid_size)
+		var face_east: bool = _face_positive_side(east_cell, west_cell) != manual_flip
+		var edge_z: float = (cz - 0.5) * grid_size if face_east else (cz + 0.5) * grid_size
+		var rot: float = (-PI / 2.0) if face_east else (PI / 2.0)
 		return {"position": Vector3(edge_x, y, edge_z), "rotation": rot}
 	else:
 		# Pared corriendo en X, en el borde norte/sur de la celda (cx,cz).
 		var edge_z: float = (cz + (0.5 if fz >= 0.0 else -0.5)) * grid_size
-		var near_cell := Vector3(cx * grid_size, y, cz * grid_size)
-		var far_cell := Vector3(cx * grid_size, y, (cz + (1.0 if fz >= 0.0 else -1.0)) * grid_size)
-		var flip: bool = _faces_away_from_floor(near_cell, far_cell) != manual_flip
-		var edge_x: float = (cx + (0.5 if flip else -0.5)) * grid_size
-		var rot: float = PI if flip else 0.0
+		var north_cell := Vector3(cx * grid_size, y, edge_z + grid_size / 2.0)
+		var south_cell := Vector3(cx * grid_size, y, edge_z - grid_size / 2.0)
+		var face_north: bool = _face_positive_side(north_cell, south_cell) != manual_flip
+		var edge_x: float = (cx - 0.5) * grid_size if face_north else (cx + 0.5) * grid_size
+		var rot: float = 0.0 if face_north else PI
 		return {"position": Vector3(edge_x, y, edge_z), "rotation": rot}
 
 func _process(_delta: float) -> void:

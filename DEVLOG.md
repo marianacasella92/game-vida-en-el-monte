@@ -107,3 +107,13 @@ Con los assets reales aparecieron dos problemas que los cubos placeholder no ten
 - De paso, se desactivó que el fantasma proyecte sombra (`cast_shadow = OFF`) — no afecta el bug de la pared, pero evita confundir una sombra de una pared ya puesta con el propio fantasma.
 
 **Dónde quedó:** pendiente de una nueva prueba. Esta vez el fix no depende de la posición del jugador, así que caminar no debería romper nada — pero la dirección exacta (afuera vs. adentro) es una suposición sin poder verla en vivo; si queda al revés, es la tecla `F` o pedir un cambio de una línea.
+
+---
+
+## 2026-07-04 (cont.) — El "arreglo por piso" todavía dependía de la posición
+
+La usuaria detectó (antes de probarlo) el problema de fondo antes de que yo lo viera: mi implementación de "orientarse por piso adyacente" comparaba la celda **cerca del jugador** contra la **lejos del jugador** al apuntar — y cuál es cuál depende de desde qué lado te parás a mirar el mismo borde. Verificado a mano: apuntando al mismo borde desde adentro vs. desde afuera de una habitación, dos aproximaciones distintas daban resultados opuestos aunque el piso construido fuera exactamente el mismo.
+
+**Arreglo:** en vez de "cerca/lejos del jugador", ahora se comparan las dos celdas **fijas** a los lados de ese borde en términos absolutos (norte/sur o este/oeste), calculadas a partir de la posición del propio borde — nunca de la posición del jugador. Mismo borde físico → mismas dos celdas a comparar, sin importar desde dónde se apunte.
+
+**Dónde quedó:** este debería ser el arreglo correcto de verdad (ya no hay forma de que dependa de la posición/dirección del jugador, matemáticamente). Falta la prueba en el editor.
