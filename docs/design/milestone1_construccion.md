@@ -20,7 +20,7 @@ Diseño cerrado para la primera pieza del vertical slice (ver [GDD](../GDD_Vida_
 
 ## Preview fantasma
 - Con una pieza equipada, aparece una versión semi-transparente en la posición donde se colocaría.
-- Posición calculada por raycast desde la cámara, snapeada a la grilla de 1m.
+- Posición calculada por raycast desde la cámara, snapeada a la grilla de 2m.
 - Color **verde** si la posición es válida, **rojo** si no (colisiona con otra pieza o está fuera de alcance).
 - Sin pieza equipada ("Manos vacías"), no se muestra ningún preview.
 
@@ -29,7 +29,7 @@ Diseño cerrado para la primera pieza del vertical slice (ver [GDD](../GDD_Vida_
 
 ## Orientación de la pared (revisado tras la primera prueba)
 - La rotación libre con `R` + mouse se probó y se sentía mal: al girar la pared con el pivote en el borde, el otro extremo podía terminar apuntando hacia la cámara y generar artefactos visuales (clipping).
-- **Reemplazada por auto-encaje:** la pared no se rota manualmente. Según en qué borde de la celda de 1m esté el puntero (norte/sur/este/oeste), la pared se orienta sola para encajar en ese borde, igual que en Los Sims. Piso y techo no necesitan esto porque son simétricos ante rotación.
+- **Reemplazada por auto-encaje:** la pared no se rota manualmente. Según en qué borde de la celda de 2m esté el puntero (norte/sur/este/oeste), la pared se orienta sola para encajar en ese borde, igual que en Los Sims. Piso y techo no necesitan esto porque son simétricos ante rotación.
 
 ## Colocar y borrar
 - **Click izquierdo** con pieza equipada y preview en verde → coloca la pieza (queda fija en el mundo, con colisión real).
