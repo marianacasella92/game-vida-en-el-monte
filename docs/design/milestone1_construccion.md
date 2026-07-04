@@ -30,6 +30,10 @@ Diseño cerrado para la primera pieza del vertical slice (ver [GDD](../GDD_Vida_
 ## Orientación de la pared (revisado tras la primera prueba)
 - La rotación libre con `R` + mouse se probó y se sentía mal: al girar la pared con el pivote en el borde, el otro extremo podía terminar apuntando hacia la cámara y generar artefactos visuales (clipping).
 - **Reemplazada por auto-encaje:** la pared no se rota manualmente. Según en qué borde de la celda de 2m esté el puntero (norte/sur/este/oeste), la pared se orienta sola para encajar en ese borde, igual que en Los Sims. Piso y techo no necesitan esto porque son simétricos ante rotación.
+- **Revisado de nuevo con assets reales:** la pared de Quaternius no es simétrica (tiene una cara con vigas de madera y otra lisa). Con solo 2 orientaciones posibles (una por eje), la cara linda quedaba mirando para afuera en 2 de las 4 paredes de una habitación y para adentro en las otras 2. Se agregó un espejado de 180° según de qué lado de la celda esté el puntero (no solo el eje), para que las 4 paredes de una habitación queden consistentes entre sí.
+
+## Altura del techo
+- El techo **no usa la grilla vertical genérica**: la pared mide 3m de alto, que no es múltiplo de la grilla de 2m, así que redondear la altura a la grilla dejaba el techo flotando a mitad de pared. En cambio, el techo siempre se coloca a una altura fija (`wall_height`, 3m) sin importar hacia dónde esté mirando el jugador verticalmente — asume por ahora que las casas son de una sola planta.
 
 ## Colocar y borrar
 - **Click izquierdo** con pieza equipada y preview en verde → coloca la pieza (queda fija en el mundo, con colisión real).

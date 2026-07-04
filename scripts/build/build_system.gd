@@ -2,6 +2,7 @@ extends Node3D
 
 @export var build_range: float = 10.0
 @export var grid_size: float = 2.0
+@export var wall_height: float = 3.0
 
 const PIECE_SCENES := {
 	"wall": preload("res://scenes/build/wall.tscn"),
@@ -118,6 +119,11 @@ func _snap_flat(point: Vector3) -> Vector3:
 		round(point.z / grid_size) * grid_size
 	)
 
+func _snap_roof(point: Vector3) -> Vector3:
+	var flat: Vector3 = _snap_flat(point)
+	flat.y = wall_height
+	return flat
+
 func _snap_wall(point: Vector3) -> Dictionary:
 	var cx: float = round(point.x / grid_size)
 	var cz: float = round(point.z / grid_size)
@@ -126,11 +132,21 @@ func _snap_wall(point: Vector3) -> Dictionary:
 	var y: float = round(point.y / grid_size) * grid_size
 
 	if abs(fx) >= abs(fz):
+		# Pared corriendo en Z. Del lado +X, la cara linda mira hacia +X;
+		# del lado -X, se espeja 180° para que la cara linda siga mirando hacia afuera.
+		var flip: bool = fx < 0.0
 		var edge_x: float = (cx + (0.5 if fx >= 0.0 else -0.5)) * grid_size
-		return {"position": Vector3(edge_x, y, (cz - 0.5) * grid_size), "rotation": -PI / 2.0}
+		var edge_z: float = (cz + (0.5 if flip else -0.5)) * grid_size
+		var rot: float = (PI / 2.0) if flip else (-PI / 2.0)
+		return {"position": Vector3(edge_x, y, edge_z), "rotation": rot}
 	else:
+		# Pared corriendo en X. Del lado +Z, la cara linda mira hacia +Z;
+		# del lado -Z, se espeja 180°.
+		var flip: bool = fz < 0.0
 		var edge_z: float = (cz + (0.5 if fz >= 0.0 else -0.5)) * grid_size
-		return {"position": Vector3((cx - 0.5) * grid_size, y, edge_z), "rotation": 0.0}
+		var edge_x: float = (cx + (0.5 if flip else -0.5)) * grid_size
+		var rot: float = PI if flip else 0.0
+		return {"position": Vector3(edge_x, y, edge_z), "rotation": rot}
 
 func _process(_delta: float) -> void:
 	if menu_open or not ghost:
@@ -147,6 +163,9 @@ func _process(_delta: float) -> void:
 		var placement: Dictionary = _snap_wall(target_point)
 		snapped = placement["position"]
 		rot_y = placement["rotation"]
+	elif equipped_piece == "roof":
+		snapped = _snap_roof(target_point)
+		rot_y = 0.0
 	else:
 		snapped = _snap_flat(target_point)
 		rot_y = 0.0
