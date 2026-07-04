@@ -139,3 +139,13 @@ La usuaria probó de nuevo y salió "exactamente al revés". En vez de seguir ad
 **Arreglo:** se sacó la consulta de física por completo. Ahora `BuildSystem` lleva su propio registro simple (`floor_cells: Dictionary`, celda → true) de dónde hay piso, actualizado directamente cuando se coloca/borra un piso — sin física de por medio, sin capas de colisión, sin radios de esfera que ajustar. Mucho más fácil de verificar leyendo el código.
 
 **Dónde quedó:** pendiente de la prueba. El log de debug (`print` en Output) se deja por ahora como red de seguridad para poder diagnosticar con números si algo más sale mal.
+
+---
+
+## 2026-07-04 (cont.) — Milestone 1 cerrado de verdad
+
+La usuaria armó una esquina con las 4 vigas cruzadas mirando para afuera en las dos caras — el registro de piso propio resolvió el bug de raíz. **Milestone 1 (construcción) completo.**
+
+Se sacó el `print()` de debug de `_place_piece()` ahora que ya cumplió su función. Quedó documentado en [TASKS.md](TASKS.md) una lista corta de mejoras futuras no urgentes (más piezas, más de un piso, deshacer) para no perder la idea sin bloquear el avance a Milestone 2.
+
+**Próximo paso:** Milestone 2 — escritorio de trabajo + mini-juego de "dar clase en vivo".

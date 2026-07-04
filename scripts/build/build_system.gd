@@ -101,9 +101,6 @@ func _place_piece() -> void:
 	if not ghost or not ghost_valid:
 		return
 
-	if equipped_piece == "wall":
-		print("[BUILD] Pared colocada en ", ghost.global_position, " — rotación: ", rad_to_deg(ghost.global_rotation.y), "°")
-
 	var piece: StaticBody3D = PIECE_SCENES[equipped_piece].instantiate()
 	get_tree().current_scene.add_child(piece)
 	piece.global_position = ghost.global_position

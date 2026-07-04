@@ -22,6 +22,12 @@ Diseño cerrado en [docs/design/milestone1_construccion.md](docs/design/mileston
 - [x] Borrar pieza con click derecho apuntando a una ya colocada
 - [x] Limitar alcance de colocación/borrado a 5 metros
 
+**Mejoras futuras posibles (no urgentes, quedó bastante básico a propósito para cerrar el vertical slice):**
+- Más variedad de piezas (puertas, ventanas, esquinas dedicadas en vez de que las paredes rectas se crucen).
+- Soporte para más de un piso/planta (hoy `wall_height` asume una sola altura fija).
+- Deshacer la última pieza colocada.
+- Piso/techo con su propia orientación si hace falta (hoy no la necesitan, son simétricos).
+
 ## Milestone 2 — Escritorio de trabajo + mini-juego
 - [ ] Objeto interactuable "escritorio" (detección de proximidad + prompt "Presioná E")
 - [ ] Estado "trabajando": bloquear movimiento, cambiar cámara/UI
