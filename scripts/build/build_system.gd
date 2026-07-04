@@ -21,6 +21,7 @@ var ghost_shape: Shape3D
 var ghost_valid: bool = false
 var menu_open: bool = false
 var manual_flip: bool = false
+var floor_cells: Dictionary = {}
 
 var valid_material := StandardMaterial3D.new()
 var invalid_material := StandardMaterial3D.new()
@@ -93,6 +94,9 @@ func _spawn_ghost() -> void:
 	ghost.collision_layer = 0
 	ghost.collision_mask = 0
 
+func _cell_key(x: float, z: float) -> Vector2i:
+	return Vector2i(int(round(x / grid_size)), int(round(z / grid_size)))
+
 func _place_piece() -> void:
 	if not ghost or not ghost_valid:
 		return
@@ -105,6 +109,9 @@ func _place_piece() -> void:
 	piece.global_position = ghost.global_position
 	piece.global_rotation = ghost.global_rotation
 
+	if equipped_piece == "floor":
+		floor_cells[_cell_key(piece.global_position.x, piece.global_position.z)] = true
+
 func _remove_piece() -> void:
 	var result := _cast_build_ray()
 	if result.is_empty():
@@ -112,6 +119,8 @@ func _remove_piece() -> void:
 
 	var collider: Object = result.get("collider")
 	if collider and collider.is_in_group("build_piece"):
+		if collider.get_meta("piece_id", "") == "floor":
+			floor_cells.erase(_cell_key(collider.global_position.x, collider.global_position.z))
 		collider.queue_free()
 
 func _build_ray_target() -> Vector3:
@@ -135,26 +144,15 @@ func _snap_roof(point: Vector3) -> Vector3:
 	flat.y = wall_height
 	return flat
 
-func _cell_has_floor(center: Vector3) -> bool:
-	var space_state := get_world_3d().direct_space_state
-	var shape := SphereShape3D.new()
-	shape.radius = grid_size * 0.3
-	var query := PhysicsShapeQueryParameters3D.new()
-	query.shape = shape
-	query.transform = Transform3D(Basis(), center + Vector3(0, 0.05, 0))
-
-	for hit in space_state.intersect_shape(query, 8):
-		var collider: Object = hit.get("collider")
-		if collider and collider.is_in_group("build_piece") and collider.get_meta("piece_id", "") == "floor":
-			return true
-	return false
+func _cell_has_floor(x: float, z: float) -> bool:
+	return floor_cells.has(_cell_key(x, z))
 
 ## Decide hacia qué lado del eje positivo (norte o este) debe mirar la cara linda,
 ## mirando únicamente las dos celdas fijas a los lados del borde — nunca la posición
 ## del jugador — para que el resultado no cambie según desde dónde se apunte.
-func _face_positive_side(positive_cell: Vector3, negative_cell: Vector3) -> bool:
-	var positive_has_floor: bool = _cell_has_floor(positive_cell)
-	var negative_has_floor: bool = _cell_has_floor(negative_cell)
+func _face_positive_side(positive_x: float, positive_z: float, negative_x: float, negative_z: float) -> bool:
+	var positive_has_floor: bool = _cell_has_floor(positive_x, positive_z)
+	var negative_has_floor: bool = _cell_has_floor(negative_x, negative_z)
 	if negative_has_floor and not positive_has_floor:
 		return true
 	if positive_has_floor and not negative_has_floor:
@@ -171,18 +169,14 @@ func _snap_wall(point: Vector3) -> Dictionary:
 	if abs(fx) >= abs(fz):
 		# Pared corriendo en Z, en el borde este/oeste de la celda (cx,cz).
 		var edge_x: float = (cx + (0.5 if fx >= 0.0 else -0.5)) * grid_size
-		var east_cell := Vector3(edge_x + grid_size / 2.0, y, cz * grid_size)
-		var west_cell := Vector3(edge_x - grid_size / 2.0, y, cz * grid_size)
-		var face_east: bool = _face_positive_side(east_cell, west_cell) != manual_flip
+		var face_east: bool = _face_positive_side(edge_x + grid_size / 2.0, cz * grid_size, edge_x - grid_size / 2.0, cz * grid_size) != manual_flip
 		var edge_z: float = (cz + 0.5) * grid_size if face_east else (cz - 0.5) * grid_size
 		var rot: float = (PI / 2.0) if face_east else (-PI / 2.0)
 		return {"position": Vector3(edge_x, y, edge_z), "rotation": rot}
 	else:
 		# Pared corriendo en X, en el borde norte/sur de la celda (cx,cz).
 		var edge_z: float = (cz + (0.5 if fz >= 0.0 else -0.5)) * grid_size
-		var north_cell := Vector3(cx * grid_size, y, edge_z + grid_size / 2.0)
-		var south_cell := Vector3(cx * grid_size, y, edge_z - grid_size / 2.0)
-		var face_north: bool = _face_positive_side(north_cell, south_cell) != manual_flip
+		var face_north: bool = _face_positive_side(cx * grid_size, edge_z + grid_size / 2.0, cx * grid_size, edge_z - grid_size / 2.0) != manual_flip
 		var edge_x: float = (cx - 0.5) * grid_size if face_north else (cx + 0.5) * grid_size
 		var rot: float = 0.0 if face_north else PI
 		return {"position": Vector3(edge_x, y, edge_z), "rotation": rot}

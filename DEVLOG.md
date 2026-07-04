@@ -127,3 +127,15 @@ La prueba con dos paredes en escuadra mostró: norte/sur bien, este/oeste al rev
 - Rama este/oeste (rotación ±90°): acá estaba el bug real. Cuando escribí esta rama originalmente, elegí `rot=-90°` para "cara hacia el este" basándome solo en que la pared quedara bien *posicionada* (que abarque el segmento correcto), sin verificar hacia dónde apunta realmente la cara decorativa con esa rotación. Haciendo la cuenta: `rot=-90°` apunta la cara hacia **oeste**, no este — estaba invertido desde el principio. Arreglado invirtiendo qué rotación/esquina corresponde a `face_east=true` vs `false`.
 
 **Dónde quedó:** las dos ramas (norte/sur y este/oeste) ahora están verificadas con la matriz de rotación real, no por prueba y error. Pendiente de confirmación jugando.
+
+---
+
+## 2026-07-04 (cont.) — El bug real: la detección de piso por física no funcionaba
+
+La usuaria probó de nuevo y salió "exactamente al revés". En vez de seguir adivinando, agregué un `print()` en `_place_piece()` para loguear posición y rotación exacta de cada pared colocada, y le pedí los números en vez de fotos.
+
+**Con los datos:** las 4 paredes mostraban un patrón clarísimo — todas las del lado negativo de su eje (oeste; y el equivalente sobre Z) quedaban mal, todas las del lado positivo quedaban bien, **sin importar el lado real de la habitación**. Eso significa que `_cell_has_floor()` (una consulta de física con `SphereShape3D` contra los pisos ya colocados) nunca estaba detectando el piso — siempre caía en el valor por defecto ("mirar hacia el lado positivo"), y por eso el lado positivo de cada eje salía bien "de casualidad" y el negativo siempre mal.
+
+**Arreglo:** se sacó la consulta de física por completo. Ahora `BuildSystem` lleva su propio registro simple (`floor_cells: Dictionary`, celda → true) de dónde hay piso, actualizado directamente cuando se coloca/borra un piso — sin física de por medio, sin capas de colisión, sin radios de esfera que ajustar. Mucho más fácil de verificar leyendo el código.
+
+**Dónde quedó:** pendiente de la prueba. El log de debug (`print` en Output) se deja por ahora como red de seguridad para poder diagnosticar con números si algo más sale mal.
