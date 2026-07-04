@@ -9,8 +9,8 @@ Cada tarea está pensada para entrar en una sesión de 1-3hs. Tildar con `[x]` a
 - [x] Terreno de prueba (plano 50x50)
 - [x] Repo git + GitHub conectado
 
-## Milestone 1 — Construcción (casa/terreno)
-Diseño cerrado en [docs/design/milestone1_construccion.md](docs/design/milestone1_construccion.md). Grid de 1m, sin modo de construcción separado, menú radial con `G`, alcance de 5m, rotación libre con `R` + mouse, gratis e ilimitado por ahora.
+## Milestone 1 — Construcción (casa/terreno) — COMPLETO
+Diseño cerrado en [docs/design/milestone1_construccion.md](docs/design/milestone1_construccion.md). Grid de 2m (ajustado al tamaño real de los assets), sin modo de construcción separado, menú radial con `G`, alcance de 10m, auto-encaje de la pared en el borde más cercano, gratis e ilimitado por ahora. Piezas con assets reales de Quaternius (ver [CREDITS.md](CREDITS.md)).
 
 - [x] Crear piezas placeholder: `wall.tscn`, `floor.tscn`, `roof.tscn` (StaticBody3D + colisión, cubos grises)
 - [x] Nodo/script `BuildSystem`: raycast desde cámara + snap a grid de 1m
@@ -38,9 +38,10 @@ Diseño cerrado en [docs/design/milestone1_construccion.md](docs/design/mileston
 - [ ] Conectar ítems comprados con el sistema de construcción (Milestone 1)
 
 ## Assets (transversal, en paralelo a todo lo anterior)
-- [ ] Elegir pack(s) de assets low-poly (Kenney / Quaternius) y descargar
-- [ ] Completar [CREDITS.md](CREDITS.md) con la fuente de cada asset
-- [ ] Reemplazar geometría placeholder (cubos/planos) por assets reales
+- [x] Elegir pack(s) de assets low-poly (Quaternius) y descargar — `assets/building`, `farm`, `food`, `house_interior`, `nature`, `survival`
+- [x] Completar [CREDITS.md](CREDITS.md) con la fuente de cada asset usado
+- [x] Reemplazar geometría placeholder de pared/piso/techo por assets reales (Medieval Village MegaKit)
+- [ ] Curar/organizar el resto de los packs descargados a medida que se vayan necesitando (huerta, interior, naturaleza, etc. — no urgente todavía, es para milestones futuros)
 
 ## Fuera de alcance del vertical slice (no tocar todavía)
 Cultivo/huerta, energía (solar/batería), agua, hambre/sueño, día-noche/clima, árbol tecnológico completo, más de un mini-juego, novio/perro/familia (Fase 2).

@@ -4,4 +4,5 @@ Registro de origen de cada asset externo usado en el proyecto (modelos, texturas
 
 | Asset / Pack | Fuente | Licencia | Uso en el juego |
 |---|---|---|---|
-| _(sin assets externos todavía)_ | | | |
+| Medieval Village MegaKit (Standard) | [Quaternius](https://quaternius.com) | CC0 1.0 | `wall.tscn`, `floor.tscn`, `roof.tscn` — Wall_Plaster_Straight, Floor_WoodDark, Roof_Wooden_2x1 |
+| Packs en `assets/farm`, `assets/food`, `assets/house_interior`, `assets/nature`, `assets/survival` | Quaternius | CC0 1.0 | Descargados, todavía sin usar en escena |

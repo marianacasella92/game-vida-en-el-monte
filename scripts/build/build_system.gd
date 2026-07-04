@@ -1,7 +1,7 @@
 extends Node3D
 
-@export var build_range: float = 5.0
-@export var grid_size: float = 1.0
+@export var build_range: float = 10.0
+@export var grid_size: float = 2.0
 
 const PIECE_SCENES := {
 	"wall": preload("res://scenes/build/wall.tscn"),
@@ -15,7 +15,7 @@ const PIECE_SCENES := {
 
 var equipped_piece: String = "none"
 var ghost: StaticBody3D
-var ghost_mesh: MeshInstance3D
+var ghost_meshes: Array[MeshInstance3D] = []
 var ghost_shape: Shape3D
 var ghost_valid: bool = false
 var menu_open: bool = false
@@ -56,11 +56,19 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif event.button_index == MOUSE_BUTTON_RIGHT:
 			_remove_piece()
 
+func _find_mesh_instances(node: Node) -> Array[MeshInstance3D]:
+	var found: Array[MeshInstance3D] = []
+	if node is MeshInstance3D:
+		found.append(node)
+	for child in node.get_children():
+		found.append_array(_find_mesh_instances(child))
+	return found
+
 func _spawn_ghost() -> void:
 	if ghost:
 		ghost.queue_free()
 		ghost = null
-		ghost_mesh = null
+		ghost_meshes = []
 		ghost_shape = null
 
 	if equipped_piece == "none":
@@ -69,7 +77,7 @@ func _spawn_ghost() -> void:
 	ghost = PIECE_SCENES[equipped_piece].instantiate()
 	add_child(ghost)
 
-	ghost_mesh = ghost.get_node("MeshInstance3D")
+	ghost_meshes = _find_mesh_instances(ghost)
 	var collision: CollisionShape3D = ghost.get_node("CollisionShape3D")
 	ghost_shape = collision.shape
 	collision.disabled = true
@@ -146,7 +154,9 @@ func _process(_delta: float) -> void:
 	ghost.global_position = snapped
 	ghost.global_rotation = Vector3(0, rot_y, 0)
 	ghost_valid = in_range and not _has_overlap(snapped)
-	ghost_mesh.material_override = valid_material if ghost_valid else invalid_material
+	var tint: StandardMaterial3D = valid_material if ghost_valid else invalid_material
+	for mesh in ghost_meshes:
+		mesh.material_override = tint
 
 func _has_overlap(at: Vector3) -> bool:
 	var space_state := get_world_3d().direct_space_state

@@ -3,10 +3,11 @@
 Diseño cerrado para la primera pieza del vertical slice (ver [GDD](../GDD_Vida_en_el_Monte.md), sección 7.1 y [TASKS.md](../../TASKS.md)).
 
 ## Assets
-- **Placeholders primero:** cubos/planos grises (un color distinto por tipo de pieza) mientras no bajemos assets reales. La lógica no debería depender de cómo se ven las piezas, así que reemplazarlas después no debería tocar el código de colocación.
+- **Placeholders primero** (cubos/planos grises), reemplazados una vez que hubo assets reales bajados, sin tocar el código de colocación — tal como estaba planeado.
+- **Assets reales (Milestone 1 cerrado):** pack **Medieval Village MegaKit (Standard)** de Quaternius, CC0. Pared = `Wall_Plaster_Straight`, piso = `Floor_WoodDark`, techo = `Roof_Wooden_2x1`. Ver [CREDITS.md](../../CREDITS.md).
 
 ## Grid
-- Celda de **1m x 1m**. Compatible con la mayoría de los packs low-poly cuando sumemos assets reales.
+- Celda de **2m x 2m** (ajustado desde el 1m original: los módulos del pack de Quaternius miden 2m — pared 2m de ancho x 3m de alto, piso 2m x 2m). El alcance de colocación/borrado subió a **10m** para mantener la misma cantidad de celdas de alcance que antes (5).
 
 ## Modo de juego
 - **No hay "modo construcción" separado.** El jugador siempre puede caminar y construir al mismo tiempo, sin togglear nada.
@@ -24,7 +25,7 @@ Diseño cerrado para la primera pieza del vertical slice (ver [GDD](../GDD_Vida_
 - Sin pieza equipada ("Manos vacías"), no se muestra ningún preview.
 
 ## Alcance
-- Máximo **5 metros** desde el jugador para colocar o borrar piezas (limita el raycast).
+- Máximo **10 metros** desde el jugador para colocar o borrar piezas (limita el raycast) — equivalente a 5 celdas de 2m.
 
 ## Orientación de la pared (revisado tras la primera prueba)
 - La rotación libre con `R` + mouse se probó y se sentía mal: al girar la pared con el pivote en el borde, el otro extremo podía terminar apuntando hacia la cámara y generar artefactos visuales (clipping).
@@ -44,7 +45,7 @@ Diseño cerrado para la primera pieza del vertical slice (ver [GDD](../GDD_Vida_
 
 ## Notas técnicas (implementación)
 
-- Piezas placeholder como escenas separadas (`wall.tscn`, `floor.tscn`, `roof.tscn`): `StaticBody3D` + `MeshInstance3D` + `CollisionShape3D`, dimensionadas en múltiplos de 1m.
-- Un nodo/script `BuildSystem` (probablemente hijo del `Player`) maneja: raycast, snap a grid, pieza equipada, rotación, instanciar/eliminar piezas.
-- El preview fantasma es una instancia de la misma pieza sin colisión (o en una capa de física que no choca con el raycast de colocación), con material semi-transparente cuyo color cambia según validez.
+- Piezas como escenas separadas (`wall.tscn`, `floor.tscn`, `roof.tscn`): `StaticBody3D` raíz (grupo `build_piece`) + el modelo real instanciado como hijo (`Model`, escena `PackedScene` del `.gltf` importado) + `CollisionShape3D` propio con una caja aproximada al bounding box real (no se usa la malla del modelo como colisión, para mantenerlo simple).
+- Un nodo/script `BuildSystem` (hijo del `Player`) maneja: raycast, snap a grid, pieza equipada, encaje automático de la pared, instanciar/eliminar piezas.
+- El preview fantasma es una instancia de la misma pieza sin colisión. Como el modelo real puede tener varias mallas internas (no una sola como los cubos placeholder), `BuildSystem` busca recursivamente todos los `MeshInstance3D` del fantasma y les aplica el material semi-transparente verde/rojo a todos.
 - Menú radial como `Control` con las opciones distribuidas en círculo; se muestra/oculta con `G` y pausa temporalmente el mouse-look de la cámara mientras está abierto.

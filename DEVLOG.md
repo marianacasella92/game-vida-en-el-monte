@@ -67,3 +67,23 @@ Segunda prueba: la pared, al rotar libremente con `R`, generaba un artefacto vis
 Milestone 1 debería estar más sólido ahora. Pendiente de una tercera prueba centrada en: colocar varias paredes formando las 4 paredes de una habitación y confirmar que encajan prolijas entre sí y con el piso.
 
 **Próximo paso:** esperar el resultado de la prueba. Si cierra bien, pasar a Milestone 2 (escritorio + mini-juego).
+
+---
+
+## 2026-07-04 (cont.) — Milestone 1 confirmado + primeros assets reales
+
+Tercera prueba: la usuaria armó una casa completa con las 4 paredes y quedó feliz — **Milestone 1 dado por cerrado**.
+
+De paso, encontramos que había un merge sin resolver en git (la usuaria viene commiteando en paralelo, probablemente con GitHub Desktop, mientras yo trabajaba en el mismo working directory). Resuelto quedándonos con la versión local, que ya tenía todos los fixes; nada se perdió. Todavía sin pushear a GitHub.
+
+**Qué se hizo (assets):**
+- La usuaria bajó varios packs de Quaternius (`assets/building`, `farm`, `food`, `house_interior`, `nature`, `survival`), la mayoría en glTF, algunos solo en FBX.
+- Reemplazados los cubos placeholder de `wall.tscn`, `floor.tscn` y `roof.tscn` por modelos reales del pack **Medieval Village MegaKit (Standard)** de Quaternius (CC0): `Wall_Plaster_Straight`, `Floor_WoodDark`, `Roof_Wooden_2x1`.
+- Los módulos de este pack miden **2m** (no 1m) → se subió `grid_size` a 2.0 y `build_range` a 10.0 en `build_system.gd` para mantener el mismo alcance de 5 celdas.
+- `BuildSystem` ahora busca recursivamente todos los `MeshInstance3D` dentro del fantasma (los modelos reales tienen varias mallas, a diferencia de los cubos placeholder) para pintarlos de verde/rojo.
+- `CREDITS.md` actualizado con la fuente y licencia del pack.
+
+**Dónde quedó:**
+Milestone 1 completo y con arte real (aunque estilo "medieval", no necesariamente el look final del juego — es lo que había disponible y funciona bien para probar el sistema). El resto de los packs descargados (farm, food, house_interior, nature, survival) están en el proyecto pero todavía sin usar en ninguna escena.
+
+**Próximo paso:** decidir si seguimos afinando el look de la construcción (ej. probar otras variantes de pared/piso dentro del mismo pack) o pasamos directamente a Milestone 2 (escritorio + mini-juego).
