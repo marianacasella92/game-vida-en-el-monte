@@ -87,3 +87,23 @@ De paso, encontramos que había un merge sin resolver en git (la usuaria viene c
 Milestone 1 completo y con arte real (aunque estilo "medieval", no necesariamente el look final del juego — es lo que había disponible y funciona bien para probar el sistema). El resto de los packs descargados (farm, food, house_interior, nature, survival) están en el proyecto pero todavía sin usar en ninguna escena.
 
 **Próximo paso:** decidir si seguimos afinando el look de la construcción (ej. probar otras variantes de pared/piso dentro del mismo pack) o pasamos directamente a Milestone 2 (escritorio + mini-juego).
+
+---
+
+## 2026-07-04 (cont.) — Pared no simétrica + techo flotando
+
+Con los assets reales aparecieron dos problemas que los cubos placeholder no tenían (porque eran simétricos):
+
+1. **Pared con una sola cara "linda"** (vigas de madera de un lado, lisa del otro). Con la lógica vieja (una orientación fija por eje) quedaba bien en 2 de las 4 paredes de una habitación y al revés en las otras 2.
+2. **Techo flotando a mitad de pared** y bloqueando el paso: la pared mide 3m y la grilla vertical redondeaba de a 2m, así que nunca había un escalón que coincidiera con la punta de la pared.
+
+**Primer intento (techo: bien / pared: mal):**
+- Techo arreglado con altura fija (`wall_height` = 3.0), sin depender de la grilla vertical. Este quedó bien.
+- Pared: se agregó un espejado de 180° según de qué lado de la celda estaba el *jugador* al apuntar. La usuaria probó y este arreglo estaba mal pensado: al caminar, la orientación de la pared fantasma cambiaba todo el rato (dependía de la posición del jugador, no de algo estable), y confirmó que 2 de las 4 paredes seguían mal incluso parada quieta.
+
+**Arreglo definitivo de la pared:**
+- La orientación ahora se decide con una consulta física a cada celda vecina (`_cell_has_floor`): la cara linda apunta siempre lejos del lado que ya tiene piso construido. Es 100% relativo al mundo ya construido, no al jugador — no debería cambiar más al caminar.
+- Se agregó una tecla de emergencia (`F`) para invertir manualmente la pared fantasma si la detección automática se equivoca en algún caso, ya que no hay forma de probar esto visualmente sin que la usuaria lo juegue.
+- De paso, se desactivó que el fantasma proyecte sombra (`cast_shadow = OFF`) — no afecta el bug de la pared, pero evita confundir una sombra de una pared ya puesta con el propio fantasma.
+
+**Dónde quedó:** pendiente de una nueva prueba. Esta vez el fix no depende de la posición del jugador, así que caminar no debería romper nada — pero la dirección exacta (afuera vs. adentro) es una suposición sin poder verla en vivo; si queda al revés, es la tecla `F` o pedir un cambio de una línea.

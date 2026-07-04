@@ -20,6 +20,7 @@ var ghost_meshes: Array[MeshInstance3D] = []
 var ghost_shape: Shape3D
 var ghost_valid: bool = false
 var menu_open: bool = false
+var manual_flip: bool = false
 
 var valid_material := StandardMaterial3D.new()
 var invalid_material := StandardMaterial3D.new()
@@ -51,6 +52,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			ghost.visible = true
 	elif menu_open and event is InputEventMouseMotion:
 		radial_menu.add_motion(event.relative)
+	elif event.is_action_pressed("build_flip") and not menu_open:
+		manual_flip = not manual_flip
 	elif event is InputEventMouseButton and event.pressed and not menu_open:
 		if event.button_index == MOUSE_BUTTON_LEFT:
 			_place_piece()
@@ -72,6 +75,8 @@ func _spawn_ghost() -> void:
 		ghost_meshes = []
 		ghost_shape = null
 
+	manual_flip = false
+
 	if equipped_piece == "none":
 		return
 
@@ -79,6 +84,9 @@ func _spawn_ghost() -> void:
 	add_child(ghost)
 
 	ghost_meshes = _find_mesh_instances(ghost)
+	for mesh in ghost_meshes:
+		mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
 	var collision: CollisionShape3D = ghost.get_node("CollisionShape3D")
 	ghost_shape = collision.shape
 	collision.disabled = true
@@ -124,6 +132,29 @@ func _snap_roof(point: Vector3) -> Vector3:
 	flat.y = wall_height
 	return flat
 
+func _cell_has_floor(center: Vector3) -> bool:
+	var space_state := get_world_3d().direct_space_state
+	var shape := SphereShape3D.new()
+	shape.radius = grid_size * 0.3
+	var query := PhysicsShapeQueryParameters3D.new()
+	query.shape = shape
+	query.transform = Transform3D(Basis(), center + Vector3(0, 0.05, 0))
+
+	for hit in space_state.intersect_shape(query, 8):
+		var collider: Object = hit.get("collider")
+		if collider and collider.is_in_group("build_piece") and collider.get_meta("piece_id", "") == "floor":
+			return true
+	return false
+
+func _faces_away_from_floor(near_cell: Vector3, far_cell: Vector3) -> bool:
+	var near_has_floor: bool = _cell_has_floor(near_cell)
+	var far_has_floor: bool = _cell_has_floor(far_cell)
+	if near_has_floor and not far_has_floor:
+		return true
+	if far_has_floor and not near_has_floor:
+		return false
+	return false
+
 func _snap_wall(point: Vector3) -> Dictionary:
 	var cx: float = round(point.x / grid_size)
 	var cz: float = round(point.z / grid_size)
@@ -132,18 +163,20 @@ func _snap_wall(point: Vector3) -> Dictionary:
 	var y: float = round(point.y / grid_size) * grid_size
 
 	if abs(fx) >= abs(fz):
-		# Pared corriendo en Z. Del lado +X, la cara linda mira hacia +X;
-		# del lado -X, se espeja 180° para que la cara linda siga mirando hacia afuera.
-		var flip: bool = fx < 0.0
+		# Pared corriendo en Z, en el borde este/oeste de la celda (cx,cz).
 		var edge_x: float = (cx + (0.5 if fx >= 0.0 else -0.5)) * grid_size
+		var near_cell := Vector3(cx * grid_size, y, cz * grid_size)
+		var far_cell := Vector3((cx + (1.0 if fx >= 0.0 else -1.0)) * grid_size, y, cz * grid_size)
+		var flip: bool = _faces_away_from_floor(near_cell, far_cell) != manual_flip
 		var edge_z: float = (cz + (0.5 if flip else -0.5)) * grid_size
 		var rot: float = (PI / 2.0) if flip else (-PI / 2.0)
 		return {"position": Vector3(edge_x, y, edge_z), "rotation": rot}
 	else:
-		# Pared corriendo en X. Del lado +Z, la cara linda mira hacia +Z;
-		# del lado -Z, se espeja 180°.
-		var flip: bool = fz < 0.0
+		# Pared corriendo en X, en el borde norte/sur de la celda (cx,cz).
 		var edge_z: float = (cz + (0.5 if fz >= 0.0 else -0.5)) * grid_size
+		var near_cell := Vector3(cx * grid_size, y, cz * grid_size)
+		var far_cell := Vector3(cx * grid_size, y, (cz + (1.0 if fz >= 0.0 else -1.0)) * grid_size)
+		var flip: bool = _faces_away_from_floor(near_cell, far_cell) != manual_flip
 		var edge_x: float = (cx + (0.5 if flip else -0.5)) * grid_size
 		var rot: float = PI if flip else 0.0
 		return {"position": Vector3(edge_x, y, edge_z), "rotation": rot}
