@@ -117,3 +117,13 @@ La usuaria detectó (antes de probarlo) el problema de fondo antes de que yo lo 
 **Arreglo:** en vez de "cerca/lejos del jugador", ahora se comparan las dos celdas **fijas** a los lados de ese borde en términos absolutos (norte/sur o este/oeste), calculadas a partir de la posición del propio borde — nunca de la posición del jugador. Mismo borde físico → mismas dos celdas a comparar, sin importar desde dónde se apunte.
 
 **Dónde quedó:** este debería ser el arreglo correcto de verdad (ya no hay forma de que dependa de la posición/dirección del jugador, matemáticamente). Falta la prueba en el editor.
+
+---
+
+## 2026-07-04 (cont.) — Este/oeste invertido (bug real, no de posición)
+
+La prueba con dos paredes en escuadra mostró: norte/sur bien, este/oeste al revés. Esta vez lo resolví con la matriz de rotación de Godot (`Ry(θ)`) en vez de a ojo:
+- Rama norte/sur (rotación 0°/180°): verificado a mano, consistente. `rot=0` efectivamente apunta la cara decorativa a +Z, `rot=180°` a -Z. Sin cambios.
+- Rama este/oeste (rotación ±90°): acá estaba el bug real. Cuando escribí esta rama originalmente, elegí `rot=-90°` para "cara hacia el este" basándome solo en que la pared quedara bien *posicionada* (que abarque el segmento correcto), sin verificar hacia dónde apunta realmente la cara decorativa con esa rotación. Haciendo la cuenta: `rot=-90°` apunta la cara hacia **oeste**, no este — estaba invertido desde el principio. Arreglado invirtiendo qué rotación/esquina corresponde a `face_east=true` vs `false`.
+
+**Dónde quedó:** las dos ramas (norte/sur y este/oeste) ahora están verificadas con la matriz de rotación real, no por prueba y error. Pendiente de confirmación jugando.

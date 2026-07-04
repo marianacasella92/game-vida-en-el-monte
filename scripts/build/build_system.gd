@@ -171,8 +171,8 @@ func _snap_wall(point: Vector3) -> Dictionary:
 		var east_cell := Vector3(edge_x + grid_size / 2.0, y, cz * grid_size)
 		var west_cell := Vector3(edge_x - grid_size / 2.0, y, cz * grid_size)
 		var face_east: bool = _face_positive_side(east_cell, west_cell) != manual_flip
-		var edge_z: float = (cz - 0.5) * grid_size if face_east else (cz + 0.5) * grid_size
-		var rot: float = (-PI / 2.0) if face_east else (PI / 2.0)
+		var edge_z: float = (cz + 0.5) * grid_size if face_east else (cz - 0.5) * grid_size
+		var rot: float = (PI / 2.0) if face_east else (-PI / 2.0)
 		return {"position": Vector3(edge_x, y, edge_z), "rotation": rot}
 	else:
 		# Pared corriendo en X, en el borde norte/sur de la celda (cx,cz).
