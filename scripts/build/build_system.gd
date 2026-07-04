@@ -4,17 +4,39 @@ extends Node3D
 @export var grid_size: float = 2.0
 @export var wall_height: float = 3.0
 
-const PIECE_SCENES := {
-	"wall": preload("res://scenes/build/wall.tscn"),
-	"floor": preload("res://scenes/build/floor.tscn"),
-	"roof": preload("res://scenes/build/roof.tscn"),
+## category_id -> {"label": String, "variants": {variant_id -> {"label": String, "scene": PackedScene}}}
+## La categoría define CÓMO se posiciona la pieza (ver _process); la variante
+## solo define QUÉ escena se instancia. Agregar una puerta, una ventana o una
+## esquina nueva es sumar una entrada acá, sin tocar la lógica de snap.
+const CATALOG := {
+	"wall": {
+		"label": "Pared",
+		"variants": {
+			"straight": {"label": "Recta", "scene": preload("res://scenes/build/wall.tscn")},
+			"door": {"label": "Puerta", "scene": preload("res://scenes/build/wall_door.tscn")},
+			"window": {"label": "Ventana", "scene": preload("res://scenes/build/wall_window.tscn")},
+		},
+	},
+	"floor": {
+		"label": "Piso",
+		"variants": {
+			"plain": {"label": "Piso", "scene": preload("res://scenes/build/floor.tscn")},
+		},
+	},
+	"roof": {
+		"label": "Techo",
+		"variants": {
+			"flat": {"label": "Plano", "scene": preload("res://scenes/build/roof.tscn")},
+		},
+	},
 }
 
 @onready var camera: Camera3D = get_node("../Head/Camera3D")
 @onready var player: CharacterBody3D = get_parent()
 @onready var radial_menu: Control = $RadialMenuLayer/Wheel
 
-var equipped_piece: String = "none"
+var equipped_category: String = "none"
+var equipped_variant: String = ""
 var ghost: StaticBody3D
 var ghost_meshes: Array[MeshInstance3D] = []
 var ghost_shape: Shape3D
@@ -35,7 +57,20 @@ func _ready() -> void:
 	invalid_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	invalid_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 
+	radial_menu.setup(_menu_catalog())
 	_spawn_ghost()
+
+func _menu_catalog() -> Dictionary:
+	var menu: Dictionary = {}
+	for category_id in CATALOG:
+		var variants: Dictionary = {}
+		for variant_id in CATALOG[category_id]["variants"]:
+			variants[variant_id] = CATALOG[category_id]["variants"][variant_id]["label"]
+		menu[category_id] = {"label": CATALOG[category_id]["label"], "variants": variants}
+	return menu
+
+func _piece_scene(category: String, variant: String) -> PackedScene:
+	return CATALOG[category]["variants"][variant]["scene"]
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("build_menu"):
@@ -45,9 +80,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		radial_menu.open()
 	elif event.is_action_released("build_menu"):
 		menu_open = false
-		var choice: String = radial_menu.close()
-		if choice != "":
-			equipped_piece = choice
+		var choice: Dictionary = radial_menu.close()
+		if not choice.is_empty():
+			equipped_category = choice["category"]
+			equipped_variant = choice["variant"]
 			_spawn_ghost()
 		elif ghost:
 			ghost.visible = true
@@ -78,10 +114,10 @@ func _spawn_ghost() -> void:
 
 	manual_flip = false
 
-	if equipped_piece == "none":
+	if equipped_category == "none":
 		return
 
-	ghost = PIECE_SCENES[equipped_piece].instantiate()
+	ghost = _piece_scene(equipped_category, equipped_variant).instantiate()
 	add_child(ghost)
 
 	ghost_meshes = _find_mesh_instances(ghost)
@@ -101,12 +137,12 @@ func _place_piece() -> void:
 	if not ghost or not ghost_valid:
 		return
 
-	var piece: StaticBody3D = PIECE_SCENES[equipped_piece].instantiate()
+	var piece: StaticBody3D = _piece_scene(equipped_category, equipped_variant).instantiate()
 	get_tree().current_scene.add_child(piece)
 	piece.global_position = ghost.global_position
 	piece.global_rotation = ghost.global_rotation
 
-	if equipped_piece == "floor":
+	if equipped_category == "floor":
 		floor_cells[_cell_key(piece.global_position.x, piece.global_position.z)] = true
 
 func _remove_piece() -> void:
@@ -116,7 +152,7 @@ func _remove_piece() -> void:
 
 	var collider: Object = result.get("collider")
 	if collider and collider.is_in_group("build_piece"):
-		if collider.get_meta("piece_id", "") == "floor":
+		if collider.get_meta("piece_category", "") == "floor":
 			floor_cells.erase(_cell_key(collider.global_position.x, collider.global_position.z))
 		collider.queue_free()
 
@@ -189,11 +225,11 @@ func _process(_delta: float) -> void:
 	var snapped: Vector3
 	var rot_y: float
 
-	if equipped_piece == "wall":
+	if equipped_category == "wall":
 		var placement: Dictionary = _snap_wall(target_point)
 		snapped = placement["position"]
 		rot_y = placement["rotation"]
-	elif equipped_piece == "roof":
+	elif equipped_category == "roof":
 		snapped = _snap_roof(target_point)
 		rot_y = 0.0
 	else:

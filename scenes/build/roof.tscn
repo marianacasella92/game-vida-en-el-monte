@@ -7,7 +7,8 @@ size = Vector3(2.3, 1.25, 1.25)
 
 [node name="Roof" type="StaticBody3D"]
 groups=["build_piece"]
-metadata/piece_id = "roof"
+metadata/piece_category = "roof"
+metadata/piece_id = "flat"
 
 [node name="Model" parent="." instance=ExtResource("1")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.15, 0)

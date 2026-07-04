@@ -22,11 +22,14 @@ Diseño cerrado en [docs/design/milestone1_construccion.md](docs/design/mileston
 - [x] Borrar pieza con click derecho apuntando a una ya colocada
 - [x] Limitar alcance de colocación/borrado a 5 metros
 
+**Refactor de escalabilidad (hecho):** el sistema separa *categoría* (cómo se posiciona: pared/piso/techo, en `_process`) de *variante* (qué escena se instancia). Agregar una pieza nueva es sumar una entrada al `CATALOG` de `build_system.gd` + su `.tscn` con `metadata/piece_category` y `metadata/piece_id`, sin tocar la lógica de snap. El menú radial (`radial_menu.gd`) es genérico: si una categoría tiene más de una variante, empujar el stick hasta el borde abre un segundo nivel para elegirla (hoy "Pared" tiene Recta/Puerta/Ventana como prueba).
+
 **Mejoras futuras posibles (no urgentes, quedó bastante básico a propósito para cerrar el vertical slice):**
-- Más variedad de piezas (puertas, ventanas, esquinas dedicadas en vez de que las paredes rectas se crucen).
+- Las variantes puerta/ventana usan la misma caja de colisión sólida que la pared recta (no se puede caminar por la puerta todavía) — falta ajustar la forma de colisión por variante o agregar un hueco pasable.
+- Esquinas/juntas dedicadas para pared y techo (el pack ya trae piezas `_L`, `_R`, `_Corner`, `_Middle`) — se agregan igual que puerta/ventana, pero seguramente necesiten su propia rotación de 4 direcciones en vez de la de pared/techo actual.
 - Soporte para más de un piso/planta (hoy `wall_height` asume una sola altura fija).
 - Deshacer la última pieza colocada.
-- Piso/techo con su propia orientación si hace falta (hoy no la necesitan, son simétricos).
+- Piso/techo con su propia orientación si hace falta (hoy no la necesitan, son simétricas salvo que se agreguen variantes direccionales como esquinas).
 
 ## Milestone 2 — Escritorio de trabajo + mini-juego
 - [ ] Objeto interactuable "escritorio" (detección de proximidad + prompt "Presioná E")
