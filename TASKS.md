@@ -10,14 +10,17 @@ Cada tarea está pensada para entrar en una sesión de 1-3hs. Tildar con `[x]` a
 - [x] Repo git + GitHub conectado
 
 ## Milestone 1 — Construcción (casa/terreno)
-- [ ] Definir tamaño de grid de construcción (ej. 1m x 1m)
-- [ ] Modo construcción: entrar/salir con una tecla
-- [ ] Preview fantasma de la pieza (raycast desde cámara, snap a grid)
-- [ ] Colocar pared (click para confirmar)
-- [ ] Colocar piso
-- [ ] Colocar techo
-- [ ] Colisión real en las piezas colocadas
-- [ ] Eliminar/deshacer una pieza colocada (opcional para el vertical slice)
+Diseño cerrado en [docs/design/milestone1_construccion.md](docs/design/milestone1_construccion.md). Grid de 1m, sin modo de construcción separado, menú radial con `G`, alcance de 5m, rotación libre con `R` + mouse, gratis e ilimitado por ahora.
+
+- [ ] Crear piezas placeholder: `wall.tscn`, `floor.tscn`, `roof.tscn` (StaticBody3D + colisión, cubos grises)
+- [ ] Nodo/script `BuildSystem`: raycast desde cámara + snap a grid de 1m
+- [ ] Preview fantasma: instancia semi-transparente que sigue el raycast, verde/rojo según validez
+- [ ] Menú radial (`Control`) con Pared/Piso/Techo/Manos vacías, se abre manteniendo `G`
+- [ ] Pieza equipada persiste hasta elegir otra en el menú
+- [ ] Rotación libre de la pieza fantasma manteniendo `R` + movimiento del mouse
+- [ ] Colocar pieza con click izquierdo (si el preview está en verde)
+- [ ] Borrar pieza con click derecho apuntando a una ya colocada
+- [ ] Limitar alcance de colocación/borrado a 5 metros
 
 ## Milestone 2 — Escritorio de trabajo + mini-juego
 - [ ] Objeto interactuable "escritorio" (detección de proximidad + prompt "Presioná E")
