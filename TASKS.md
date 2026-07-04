@@ -12,15 +12,15 @@ Cada tarea está pensada para entrar en una sesión de 1-3hs. Tildar con `[x]` a
 ## Milestone 1 — Construcción (casa/terreno)
 Diseño cerrado en [docs/design/milestone1_construccion.md](docs/design/milestone1_construccion.md). Grid de 1m, sin modo de construcción separado, menú radial con `G`, alcance de 5m, rotación libre con `R` + mouse, gratis e ilimitado por ahora.
 
-- [ ] Crear piezas placeholder: `wall.tscn`, `floor.tscn`, `roof.tscn` (StaticBody3D + colisión, cubos grises)
-- [ ] Nodo/script `BuildSystem`: raycast desde cámara + snap a grid de 1m
-- [ ] Preview fantasma: instancia semi-transparente que sigue el raycast, verde/rojo según validez
-- [ ] Menú radial (`Control`) con Pared/Piso/Techo/Manos vacías, se abre manteniendo `G`
-- [ ] Pieza equipada persiste hasta elegir otra en el menú
-- [ ] Rotación libre de la pieza fantasma manteniendo `R` + movimiento del mouse
-- [ ] Colocar pieza con click izquierdo (si el preview está en verde)
-- [ ] Borrar pieza con click derecho apuntando a una ya colocada
-- [ ] Limitar alcance de colocación/borrado a 5 metros
+- [x] Crear piezas placeholder: `wall.tscn`, `floor.tscn`, `roof.tscn` (StaticBody3D + colisión, cubos grises)
+- [x] Nodo/script `BuildSystem`: raycast desde cámara + snap a grid de 1m
+- [x] Preview fantasma: instancia semi-transparente que sigue el raycast, verde/rojo según validez
+- [x] Menú radial (`Control`) con Pared/Piso/Techo/Manos vacías, se abre manteniendo `G`
+- [x] Pieza equipada persiste hasta elegir otra en el menú
+- [x] ~~Rotación libre con `R` + mouse~~ → reemplazada por auto-encaje: la pared se orienta sola según el borde de celda más cercano (ver devlog)
+- [x] Colocar pieza con click izquierdo (si el preview está en verde)
+- [x] Borrar pieza con click derecho apuntando a una ya colocada
+- [x] Limitar alcance de colocación/borrado a 5 metros
 
 ## Milestone 2 — Escritorio de trabajo + mini-juego
 - [ ] Objeto interactuable "escritorio" (detección de proximidad + prompt "Presioná E")

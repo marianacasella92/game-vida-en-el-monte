@@ -8,6 +8,7 @@ extends CharacterBody3D
 @export var max_pitch_deg: float = 80.0
 
 @onready var head: Node3D = $Head
+@onready var build_system: Node = $BuildSystem
 
 var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 
@@ -15,7 +16,7 @@ func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED and not build_system.menu_open:
 		rotate_y(-event.relative.x * mouse_sensitivity)
 		head.rotate_x(-event.relative.y * mouse_sensitivity)
 		head.rotation.x = clamp(head.rotation.x, deg_to_rad(min_pitch_deg), deg_to_rad(max_pitch_deg))

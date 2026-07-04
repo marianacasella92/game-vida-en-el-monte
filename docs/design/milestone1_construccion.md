@@ -26,9 +26,9 @@ Diseño cerrado para la primera pieza del vertical slice (ver [GDD](../GDD_Vida_
 ## Alcance
 - Máximo **5 metros** desde el jugador para colocar o borrar piezas (limita el raycast).
 
-## Rotación
-- Mientras se mantiene `R` (con una pieza equipada), el movimiento horizontal del mouse rota la pieza fantasma **libremente** sobre el eje Y (sin snap a 90°).
-- Al soltar `R`, la rotación queda fija en ese ángulo para la próxima colocación.
+## Orientación de la pared (revisado tras la primera prueba)
+- La rotación libre con `R` + mouse se probó y se sentía mal: al girar la pared con el pivote en el borde, el otro extremo podía terminar apuntando hacia la cámara y generar artefactos visuales (clipping).
+- **Reemplazada por auto-encaje:** la pared no se rota manualmente. Según en qué borde de la celda de 1m esté el puntero (norte/sur/este/oeste), la pared se orienta sola para encajar en ese borde, igual que en Los Sims. Piso y techo no necesitan esto porque son simétricos ante rotación.
 
 ## Colocar y borrar
 - **Click izquierdo** con pieza equipada y preview en verde → coloca la pieza (queda fija en el mundo, con colisión real).

@@ -1,6 +1,8 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/player.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/build/build_system.gd" id="2"]
+[ext_resource type="Script" path="res://scripts/build/radial_menu.gd" id="3"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1"]
 radius = 0.4
@@ -18,3 +20,14 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0)
 
 [node name="Camera3D" type="Camera3D" parent="Head"]
 current = true
+
+[node name="BuildSystem" type="Node3D" parent="."]
+script = ExtResource("2")
+
+[node name="RadialMenuLayer" type="CanvasLayer" parent="BuildSystem"]
+
+[node name="Wheel" type="Control" parent="BuildSystem/RadialMenuLayer"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+script = ExtResource("3")

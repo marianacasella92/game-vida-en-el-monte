@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://d347ye1r5f8xq"
+path="res://.godot/imported/Stair_Interior_Rails.obj-d1495d891c8a366e0f5d925c6782b97c.mesh"
+
+[deps]
+
+files=["res://.godot/imported/Stair_Interior_Rails.obj-d1495d891c8a366e0f5d925c6782b97c.mesh"]
+
+source_file="res://assets/building/Medieval Village MegaKit[Standard]/OBJ/Stair_Interior_Rails.obj"
+dest_files=["res://.godot/imported/Stair_Interior_Rails.obj-d1495d891c8a366e0f5d925c6782b97c.mesh", "res://.godot/imported/Stair_Interior_Rails.obj-d1495d891c8a366e0f5d925c6782b97c.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false
