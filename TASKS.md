@@ -37,6 +37,9 @@ Diseño cerrado en [docs/design/milestone1_construccion.md](docs/design/mileston
 - Soporte para más de un piso/planta (hoy `wall_height` asume una sola altura fija).
 - Deshacer la última pieza colocada.
 
+**Deuda técnica pendiente:**
+- [ ] Desacoplar la lógica de `build_system.gd`: hoy tanto `_unhandled_input` (equipar/rotar/flip/colocar/borrar) como `_process` (snap por categoría) son cadenas de `if/elif equipped_category == "..."` que crecen con cada categoría nueva (pared, techo, escritorio, y lo que se sume del catálogo completo todavía pendiente). Cada pieza nueva sigue sumando otra rama. Conviene extraer cada categoría a su propia estrategia/clase (ej. un recurso o script por categoría con métodos `snap()`, `handle_input()`) en vez de un solo script con ifs encadenados — hoy es manejable para mí, pero se está volviendo difícil de seguir para una persona.
+
 ## Milestone 2 — Escritorio de trabajo + mini-juego
 Diseño del primer ítem en [docs/design/milestone2_escritorio.md](docs/design/milestone2_escritorio.md).
 
