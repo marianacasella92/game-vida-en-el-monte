@@ -38,7 +38,9 @@ Diseño cerrado en [docs/design/milestone1_construccion.md](docs/design/mileston
 - Deshacer la última pieza colocada.
 
 ## Milestone 2 — Escritorio de trabajo + mini-juego
-- [ ] Objeto interactuable "escritorio" (detección de proximidad + prompt "Presioná E")
+Diseño del primer ítem en [docs/design/milestone2_escritorio.md](docs/design/milestone2_escritorio.md).
+
+- [x] Objeto interactuable "escritorio" (detección de proximidad + prompt "Presioná E") — asset real `Desk.glb`, se coloca desde el catálogo de construcción (tecla `G`) como una pieza más, rotable con `R`. La tecla `interact` (`E`) ya está mapeada pero todavía no dispara nada.
 - [ ] Estado "trabajando": bloquear movimiento, cambiar cámara/UI
 - [ ] Mini-juego "dar clase en vivo": preguntas + opciones de respuesta
 - [ ] Lógica de tiempo límite y puntaje

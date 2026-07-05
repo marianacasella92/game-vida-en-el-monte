@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://bqjuwo6qtn2gm"]
+
+[ext_resource type="PackedScene" uid="uid://bqyp3uwddmtfc" path="res://assets/house_interior/Desk.glb" id="1_5hipd"]
+
+[node name="PruebaDesk" type="Node3D" unique_id=1016303048]
+
+[node name="Root Scene" parent="." unique_id=627542515 instance=ExtResource("1_5hipd")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.9284516, 0, -0.36502934)

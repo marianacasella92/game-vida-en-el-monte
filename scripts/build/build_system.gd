@@ -35,6 +35,12 @@ const CATALOG := {
 			"middle": {"label": "Cumbrera", "scene": preload("res://scenes/build/roof_middle.tscn")},
 		},
 	},
+	"desk": {
+		"label": "Escritorio",
+		"variants": {
+			"plain": {"label": "Escritorio", "scene": preload("res://scenes/build/desk.tscn")},
+		},
+	},
 }
 
 @onready var camera: Camera3D = get_node("../Head/Camera3D")
@@ -49,7 +55,7 @@ var ghost_shape: Shape3D
 var ghost_valid: bool = false
 var menu_open: bool = false
 var manual_flip: bool = false
-var roof_rotation_steps: int = 0
+var rotation_steps: int = 0
 var floor_cells: Dictionary = {}
 
 var valid_material := StandardMaterial3D.new()
@@ -92,8 +98,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("build_flip"):
 		manual_flip = not manual_flip
 	elif event.is_action_pressed("build_rotate"):
-		if equipped_category == "roof":
-			roof_rotation_steps = (roof_rotation_steps + 1) % 4
+		if equipped_category == "roof" or equipped_category == "desk":
+			rotation_steps = (rotation_steps + 1) % 4
 	elif event is InputEventMouseButton and event.pressed:
 		if event.button_index == MOUSE_BUTTON_LEFT:
 			_place_piece()
@@ -136,7 +142,7 @@ func _spawn_ghost() -> void:
 		ghost_shape = null
 
 	manual_flip = false
-	roof_rotation_steps = 0
+	rotation_steps = 0
 
 	if equipped_category == "none":
 		return
@@ -255,7 +261,10 @@ func _process(_delta: float) -> void:
 		rot_y = placement["rotation"]
 	elif equipped_category == "roof":
 		snapped = _snap_roof(target_point)
-		rot_y = roof_rotation_steps * (PI / 2.0)
+		rot_y = rotation_steps * (PI / 2.0)
+	elif equipped_category == "desk":
+		snapped = _snap_flat(target_point)
+		rot_y = rotation_steps * (PI / 2.0)
 	else:
 		snapped = _snap_flat(target_point)
 		rot_y = 0.0
