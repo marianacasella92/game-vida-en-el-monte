@@ -87,7 +87,7 @@ La curva ideal: **la jugadora empieza con tareas 100% manuales y de supervivenci
 - El agua se guarda en un tanque/aljibe con **capacidad máxima**, similar a cómo funciona la batería de energía — hay que gestionar cuánta agua se acumula y cuánta se consume, no es ilimitado.
 - Esto refuerza la necesidad de planificar: tanques más grandes, o combinar fuentes, para no quedarse sin agua en época seca.
 
-- Uso: consumo personal (potabilizada), riego (no necesita ser potable), animales.
+- Uso: consumo personal (potabilizada), riego (no necesita ser potable).
 
 ### 4.5 Cultivo y alimentación
 
@@ -105,7 +105,7 @@ La curva ideal: **la jugadora empieza con tareas 100% manuales y de supervivenci
 - **Si llueve, los cultivos se riegan solos** (conecta con el sistema de clima de 4.9) — un día de lluvia cubre el riego automáticamente sin que la jugadora tenga que hacer nada, reforzando que el clima es parte activa del gameplay, no solo estético.
 
 - Cocinar con lo cultivado (autoconsumo real, no solo venta).
-- Posibilidad de animales chicos (gallinas, por ejemplo) para huevos/leche, sin que sea obligatorio.
+- **Sin animales de granja:** decisión explícita de diseño — no habrá gallinas ni ningún animal para mantener/producir de él (huevos, leche, etc.), consistente con los valores de la jugadora.
 
 ### 4.6 Trabajo como educadora de programación (mecánica económica central)
 - La jugadora tiene un "escritorio/oficina" en su casa: ahí se sienta a trabajar, igual que en su vida real.
@@ -219,14 +219,29 @@ La curva ideal: **la jugadora empieza con tareas 100% manuales y de supervivenci
 ### 4.8 Necesidades personales de la jugadora
 - **Hambre:** baja con el tiempo, se recupera comiendo (idealmente con lo cultivado/cocinado — refuerza el pilar de autosuficiencia).
 - **Sueño/energía:** baja con las horas despierta y con el esfuerzo de las tareas (trabajar, cultivar, construir); se recupera durmiendo.
-- **Sin mecánicas de estrés o salud complejas por ahora** — mantenerlo simple: dos barras (hambre y energía/sueño) alcanzan para dar sensación de "vida real" sin volverse un simulador médico.
-- A definir: ¿qué pasa si se descuidan (débuff temporal, no "muerte" ni penalización dura, dado el tono tranquilo del juego)?
+- **Consecuencia si se descuidan (débuff progresivo):** el personaje se **mueve más lento** y la vida empieza a bajar de a poco — es un modo supervivencia real, sin sangre ni violencia, pero con peso: "nada es regalado", hay que arreglárselas de verdad comiendo, durmiendo y tomando agua.
+- **Si la vida llega a cero (muerte):** la partida **reinicia desde el último guardado** (automático o manual). No es fin de juego definitivo, pero tampoco es liviano — la responsabilidad de guardar seguido se combina con la de cuidarse. Debería ser algo raro que suceda si se atienden mínimamente las necesidades básicas, no algo que pase todo el tiempo.
+- **Nota de consistencia:** este es el único sistema del juego con una consecuencia "dura" real (muerte/reinicio). El resto de los sistemas (cultivo, energía, agua, construcción) mantienen el tono sin penalización dura definido en los pilares — la decisión de que las necesidades personales sí tengan peso real fue explícita y consciente, para darle sentido a "vivir de verdad" sin que el juego se sienta sin riesgo alguno.
 
 ### 4.9 Ciclo temporal y clima
 - **Día/noche:** con horarios que afectan qué se puede hacer (dormir de noche, trabajar/cultivar de día), y afecta la generación solar de energía.
 - **Estaciones:** afectan qué se puede cultivar, el clima general, y la demanda de energía (ej: más calefacción en invierno).
 - **Clima (lluvia, sol, viento):** efecto directo en el gameplay, no solo estético — la lluvia riega la huerta sola y llena los tanques de captación de agua; el viento genera energía si hay eólica instalada; los días nublados bajan la generación solar.
 - Este sistema conecta directamente con energía, agua y cultivo — es transversal a todo el core loop.
+- **Duración configurable:** la duración de un día de juego (en tiempo real) y la cantidad de días por estación se definen en un **archivo de configuración editable** (no hardcodeado en el código), para poder probar distintos valores durante el desarrollo y encontrar el balance más jugable/adictivo sin tocar código cada vez. Punto de partida sugerido para probar: día ≈ 10-15 minutos reales, estación ≈ 10-15 días de juego — a ajustar con playtesting propio.
+
+---
+
+### 4.10 Guardado, personalización y UI general
+
+**Sistema de guardado:**
+- **Automático y manual, ambos disponibles.** El autoguardado ocurre en momentos naturales (ej: al finalizar el día/dormir); el guardado manual está disponible en cualquier momento desde el menú, para que la jugadora tenga control total sobre cuánto puede llegar a perder si algo sale mal (conecta con la consecuencia de muerte definida en 4.8).
+
+**Personalización del personaje:**
+- La jugadora **puede personalizar su apariencia** (no es un personaje fijo) — apariencia, y probablemente nombre. Esto requiere definir más adelante qué tan profunda es la personalización (cambio de rasgos básicos vs. sistema completo tipo Sims) y qué assets/sistema técnico hace falta para lograrlo en Godot.
+
+**Acceso al Marketplace:**
+- Se accede desde un **celular que el personaje siempre lleva encima**, como en Los Sims 4 — no es un menú general separado, sino un objeto/UI dentro del mundo del juego que refuerza la fantasía de "vida moderna en el campo".
 
 ---
 
@@ -250,7 +265,7 @@ La curva ideal: **la jugadora empieza con tareas 100% manuales y de supervivenci
   - Ultimate House Interior Pack (decoración interior)
   - Furniture Pack (muebles)
   - Survival Pack (herramientas rurales, a revisar qué aplica)
-  - LowPoly Farm Buildings (punto de partida para la casa, a modificar con el sistema modular propio)
+  - Ultimate Buildings Pack (punto de partida para la casa, a modificar con el sistema modular propio)
   - Pendiente: paneles solares / tecnología moderna no tienen pack específico gratuito — a resolver modelando en Blender o con formas primitivas de Godot como placeholder.
 - **Estilo visual:** low-poly estilizado, consistente al usar una sola línea/autor (Quaternius) en vez de mezclar fuentes distintas.
 
