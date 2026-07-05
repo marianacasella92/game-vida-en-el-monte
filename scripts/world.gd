@@ -27,7 +27,7 @@ func _restore_plots_visuals() -> void:
 		if piece.has_meta("piece_category") and piece.get_meta("piece_category", "") == "garden":
 			var state: String = piece.get_meta("crop_state", "empty")
 			var started: float = float(piece.get_meta("crop_started_at", 0.0))
-			_set_plot_state(piece, state, started)
+			CropManager.restore_plot(piece, state, started)
 
 func _on_inventory_changed() -> void:
 	pass
@@ -92,17 +92,15 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 
 	print("[crop] interact pressed")
-	var target: Node = null
-	if Engine.has_singleton("InteractionManager"):
-		target = InteractionManager.get_from_ray(camera, 4.0)
-		if target:
-			print("[crop] ray hit interactable: %s" % target)
-			# if target implements interact(), call it
-			if target.has_method("interact"):
-				var player := get_tree().get_first_node_in_group("player")
-				var tool_id: String = player.current_tool_id if player else ""
-				target.interact(tool_id, player)
-				return
+	var target: Node = InteractionManager.get_from_ray(camera, 4.0)
+	if target:
+		print("[crop] ray hit interactable: %s" % target)
+		# if target implements interact(), call it
+		if target.has_method("interact"):
+			var player := get_tree().get_first_node_in_group("player")
+			var tool_id: String = player.current_tool_id if player else ""
+			target.interact(tool_id, player)
+			return
 	# fallback to previous ray logic for legacy crop slots and build pieces
 	var result := _cast_crop_ray()
 	if not result.is_empty():
@@ -150,26 +148,11 @@ func _interact_with_slot(slot: Area3D) -> void:
 		print("[crop] still growing")
 
 func _interact_with_plot(plot: Node) -> void:
-	# delegate planting/harvesting to CropManager singleton if available
+	# delegate planting/harvesting to CropManager singleton
 	var player: Node = get_tree().get_first_node_in_group("player")
 	var tool_id: String = player.current_tool_id if player else ""
 	print("[crop] plot %s state=%s tool=%s" % [plot.name, plot.get_meta("crop_state", "empty"), tool_id])
-	if Engine.has_singleton("CropManager"):
-		CropManager.interact(plot, tool_id, Inventory)
-	else:
-		# fallback to local logic
-		var state: String = plot.get_meta("crop_state", "empty")
-		if state == "empty" and tool_id == "seed":
-			plot.set_meta("crop_state", "growing")
-			plot.set_meta("crop_started_at", Time.get_ticks_msec() / 1000.0)
-			Inventory.remove_item(Inventory.selected_slot)
-			print("[crop] planted on plot (fallback)")
-		elif state == "ready":
-			plot.set_meta("crop_state", "empty")
-			plot.set_meta("crop_started_at", 0)
-			print("[crop] harvested from plot (fallback)")
-		else:
-			print("[crop] plot not ready or missing seed (fallback)")
+	CropManager.interact(plot, tool_id, Inventory)
 
 func _cast_crop_ray() -> Dictionary:
 	var space_state := get_world_3d().direct_space_state
@@ -206,41 +189,6 @@ func _set_slot_state(slot: Area3D, state: String, started_at: float = 0.0) -> vo
 	var marker: MeshInstance3D = slot.get_node("Marker")
 	var label: Label3D = slot.get_node("StateLabel")
 	marker.material_override = marker_materials.get(state, marker_materials["empty"])
-	match state:
-		"empty":
-			label.text = "Vacío"
-		"growing":
-			label.text = "Creciendo"
-		"ready":
-			label.text = "Listo"
-
-func _set_plot_state(plot: Node, state: String, started_at: float = 0.0) -> void:
-	plot.set_meta("crop_state", state)
-	plot.set_meta("crop_started_at", started_at)
-	# visual: update mesh color if present
-	var mesh: MeshInstance3D = plot.get_node_or_null("MeshInstance3D")
-	if mesh:
-		var mat: StandardMaterial3D = null
-		if mesh.material_override:
-			mat = mesh.material_override
-		else:
-			mat = StandardMaterial3D.new()
-			mesh.material_override = mat
-		match state:
-			"empty":
-				mat.albedo_color = Color(1, 1, 1)
-			"growing":
-				mat.albedo_color = Color(0.95, 0.85, 0.6)
-			"ready":
-				mat.albedo_color = Color(0.8, 0.95, 0.6)
-
-	# label
-	var label: Label3D = plot.get_node_or_null("StateLabel")
-	if not label:
-		label = Label3D.new()
-		label.name = "StateLabel"
-		label.position = Vector3(0, 0.6, 0)
-		plot.add_child(label)
 	match state:
 		"empty":
 			label.text = "Vacío"

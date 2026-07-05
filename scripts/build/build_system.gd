@@ -75,6 +75,11 @@ var manual_flip: bool = false
 var rotation_steps: int = 0
 var floor_cells: Dictionary = {}
 
+## "Destruir" es una herramienta más del catálogo (como equipar una pared),
+## no un click derecho suelto: hay que elegirla a propósito en el menú (G).
+var demolish_hover: Node = null
+var demolish_hover_materials: Dictionary = {} # MeshInstance3D -> Material original
+
 var valid_material := StandardMaterial3D.new()
 var invalid_material := StandardMaterial3D.new()
 
@@ -107,6 +112,7 @@ func _menu_catalog() -> Dictionary:
 		if variants.is_empty():
 			continue
 		menu[category_id] = {"label": CATALOG[category_id]["label"], "variants": variants}
+	menu["demolish"] = {"label": "Destruir", "variants": {}}
 	return menu
 
 func _piece_scene(category: String, variant: String) -> PackedScene:
@@ -133,11 +139,11 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("build_rotate"):
 		if equipped_category == "roof" or equipped_category == "desk" or equipped_category == "decor":
 			rotation_steps = (rotation_steps + 1) % 4
-	elif event is InputEventMouseButton and event.pressed:
-		if event.button_index == MOUSE_BUTTON_LEFT:
+	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		if equipped_category == "demolish":
+			_demolish_hovered()
+		else:
 			_place_piece()
-		elif event.button_index == MOUSE_BUTTON_RIGHT:
-			_remove_piece()
 
 func _open_catalog() -> void:
 	menu_open = true
@@ -160,6 +166,7 @@ func _exit_build_mode() -> void:
 	menu_open = false
 	manual_flip = false
 	rotation_steps = 0
+	_clear_demolish_highlight()
 	if ghost:
 		ghost.visible = false
 		ghost.queue_free()
@@ -184,6 +191,8 @@ func _find_mesh_instances(node: Node) -> Array[MeshInstance3D]:
 	return found
 
 func _spawn_ghost() -> void:
+	_clear_demolish_highlight()
+
 	if ghost:
 		ghost.queue_free()
 		ghost = null
@@ -193,7 +202,7 @@ func _spawn_ghost() -> void:
 	manual_flip = false
 	rotation_steps = 0
 
-	if equipped_category == "none":
+	if equipped_category == "none" or equipped_category == "demolish":
 		return
 
 	ghost = _piece_scene(equipped_category, equipped_variant).instantiate()
@@ -223,17 +232,52 @@ func _place_piece() -> void:
 
 	if equipped_category == "floor":
 		floor_cells[_cell_key(piece.global_position.x, piece.global_position.z)] = true
+	elif equipped_category == "garden":
+		CropManager.register_plantable(piece)
 
-func _remove_piece() -> void:
+func _process_demolish() -> void:
 	var result := _cast_build_ray()
-	if result.is_empty():
-		return
+	var hovered: Node = null
+	if not result.is_empty():
+		var collider: Object = result.get("collider")
+		if collider and collider is Node and collider.is_in_group("build_piece"):
+			hovered = collider
 
-	var collider: Object = result.get("collider")
-	if collider and collider.is_in_group("build_piece"):
-		if collider.get_meta("piece_category", "") == "floor":
-			floor_cells.erase(_cell_key(collider.global_position.x, collider.global_position.z))
-		collider.queue_free()
+	if hovered == demolish_hover:
+		return
+	_clear_demolish_highlight()
+	demolish_hover = hovered
+	if demolish_hover:
+		for mesh in _find_mesh_instances(demolish_hover):
+			demolish_hover_materials[mesh] = mesh.material_override
+			mesh.material_override = invalid_material
+
+func _clear_demolish_highlight() -> void:
+	for mesh in demolish_hover_materials:
+		if is_instance_valid(mesh):
+			mesh.material_override = demolish_hover_materials[mesh]
+	demolish_hover_materials.clear()
+	demolish_hover = null
+
+func _demolish_hovered() -> void:
+	if not demolish_hover:
+		return
+	var piece := demolish_hover
+	_clear_demolish_highlight()
+	_refund_piece_contents(piece)
+	if piece.get_meta("piece_category", "") == "floor":
+		floor_cells.erase(_cell_key(piece.global_position.x, piece.global_position.z))
+	piece.queue_free()
+
+## Antes de destruir una pieza, devuelve al inventario lo que tuviera "adentro".
+## Por ahora solo aplica a huerta (semilla plantada); nuevas categorías con
+## contenido reembolsable se agregan acá con otro if.
+func _refund_piece_contents(piece: Node) -> void:
+	if piece.get_meta("piece_category", "") == "garden":
+		var state: String = piece.get_meta("crop_state", "empty")
+		if state == "growing" or state == "ready":
+			Inventory.add_item("seed", "Semilla de Zanahoria")
+		CropManager.unregister_plantable(piece)
 
 ## Usado por SaveManager (autoload/save_manager.gd) para persistir lo construido.
 func serialize_pieces() -> Array:
@@ -337,7 +381,14 @@ func _snap_wall(point: Vector3) -> Dictionary:
 		return {"position": Vector3(edge_x, y, edge_z), "rotation": rot}
 
 func _process(_delta: float) -> void:
-	if menu_open or not ghost or work_system.is_working or phone_system.is_open:
+	if menu_open or work_system.is_working or phone_system.is_open:
+		return
+
+	if equipped_category == "demolish":
+		_process_demolish()
+		return
+
+	if not ghost:
 		return
 
 	var result := _cast_build_ray()

@@ -11,8 +11,11 @@ const PANEL_SIZE := Vector2(480, 420)
 ## comprarlo desbloquea la variante "decor"/"crate" en el CATALOG de
 ## build_system.gd (ver "requires_item" ahí). El resto sigue siendo
 ## placeholder, sin conexión todavía.
+## "seeds" es distinto: no es un desbloqueo único, sino un ítem consumible
+## (se suma al inventario y se gasta al plantar), por eso tiene "grants_item"
+## y se puede comprar más de una vez.
 const ITEMS := {
-	"seeds": {"label": "Semillas", "price": 20, "description": "Para empezar a cultivar más adelante."},
+	"seeds": {"label": "Semilla de Zanahoria", "price": 0, "description": "Para plantar en la huerta.", "grants_item": {"id": "seed", "name": "Semilla de Zanahoria"}},
 	"tool": {"label": "Herramienta", "price": 35, "description": "Herramienta genérica de trabajo rural."},
 	"decor": {"label": "Adorno", "price": 15, "description": "Decoración simple para la casa."},
 	"crate": {"label": "Cajón de madera", "price": 25, "description": "Desbloquea el cajón de madera en el catálogo de construcción (tecla G)."},
@@ -86,7 +89,11 @@ func refresh() -> void:
 		row.add_child(info)
 
 		var buy_button := Button.new()
-		if Economy.purchased_items.has(item_id):
+		if item.has("grants_item"):
+			# consumible: se puede comprar cuantas veces se quiera
+			buy_button.text = "Comprar"
+			buy_button.pressed.connect(_on_buy_consumable_pressed.bind(item["price"], item["grants_item"]))
+		elif Economy.purchased_items.has(item_id):
 			buy_button.text = "Comprado"
 			buy_button.disabled = true
 		else:
@@ -98,6 +105,12 @@ func refresh() -> void:
 
 func _on_buy_pressed(item_id: String, price: int) -> void:
 	Economy.purchase_item(item_id, price)
+	refresh()
+
+func _on_buy_consumable_pressed(price: int, grants_item: Dictionary) -> void:
+	if not Economy.spend_money(price):
+		return
+	Inventory.add_item(grants_item["id"], grants_item["name"])
 	refresh()
 
 func _on_save_pressed() -> void:
