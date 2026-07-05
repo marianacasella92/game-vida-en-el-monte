@@ -16,10 +16,12 @@ func _ready() -> void:
 
 func save_game() -> void:
 	var build_system: Node = get_tree().get_first_node_in_group("build_system")
+	var world: Node = get_tree().current_scene
 	var data := {
 		"money": Economy.money,
 		"purchased_items": Economy.purchased_items,
 		"pieces": build_system.serialize_pieces() if build_system else [],
+		"crops": world.serialize_crops() if world and world.has_method("serialize_crops") else [],
 	}
 	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	file.store_string(JSON.stringify(data))
@@ -41,3 +43,7 @@ func load_game() -> void:
 	if build_system:
 		build_system.clear_pieces()
 		build_system.load_pieces(data.get("pieces", []))
+
+	var world: Node = get_tree().current_scene
+	if world and world.has_method("load_crops"):
+		world.load_crops(data.get("crops", []))

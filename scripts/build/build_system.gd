@@ -50,6 +50,12 @@ const CATALOG := {
 			"crate": {"label": "Cajón de madera", "scene": preload("res://scenes/build/decor_crate.tscn"), "requires_item": "crate"},
 		},
 	},
+	"garden": {
+		"label": "Huerta",
+		"variants": {
+			"plot": {"label": "Parcela simple", "scene": preload("res://scenes/build/garden_plot.tscn")},
+		},
+	},
 }
 
 @onready var camera: Camera3D = get_node("../Head/Camera3D")
@@ -109,6 +115,12 @@ func _piece_scene(category: String, variant: String) -> PackedScene:
 func _unhandled_input(event: InputEvent) -> void:
 	if work_system.is_working or phone_system.is_open:
 		return
+	if event.is_action_pressed("ui_cancel"):
+		if menu_open:
+			_close_catalog()
+		else:
+			_exit_build_mode()
+		return
 	if event.is_action_pressed("build_menu"):
 		if menu_open:
 			_close_catalog()
@@ -141,6 +153,21 @@ func _close_catalog() -> void:
 	catalog_menu.close()
 	if ghost:
 		ghost.visible = true
+
+func _exit_build_mode() -> void:
+	equipped_category = "none"
+	equipped_variant = ""
+	menu_open = false
+	manual_flip = false
+	rotation_steps = 0
+	if ghost:
+		ghost.visible = false
+		ghost.queue_free()
+		ghost = null
+		ghost_meshes = []
+		ghost_shape = null
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	catalog_menu.close()
 
 func _on_piece_chosen(category: String, variant: String) -> void:
 	equipped_category = category
@@ -212,12 +239,16 @@ func _remove_piece() -> void:
 func serialize_pieces() -> Array:
 	var result: Array = []
 	for piece in get_tree().get_nodes_in_group("build_piece"):
-		result.append({
+		var entry := {
 			"category": piece.get_meta("piece_category"),
 			"id": piece.get_meta("piece_id"),
 			"position": [piece.global_position.x, piece.global_position.y, piece.global_position.z],
 			"rotation": [piece.global_rotation.x, piece.global_rotation.y, piece.global_rotation.z],
-		})
+		}
+		# include crop metadata for garden pieces if present
+		if piece.has_meta("crop_state"):
+			entry["meta"] = {"crop_state": piece.get_meta("crop_state"), "crop_started_at": piece.get_meta("crop_started_at", 0)}
+		result.append(entry)
 	return result
 
 func clear_pieces() -> void:
@@ -239,6 +270,13 @@ func load_pieces(data: Array) -> void:
 
 		if category == "floor":
 			floor_cells[_cell_key(piece.global_position.x, piece.global_position.z)] = true
+
+		# restore planted metadata if present
+		if entry.has("meta"):
+			var meta: Dictionary = entry["meta"]
+			if meta.has("crop_state"):
+				piece.set_meta("crop_state", meta.get("crop_state"))
+				piece.set_meta("crop_started_at", meta.get("crop_started_at", 0))
 
 func _build_ray_target() -> Vector3:
 	return camera.global_position + camera.global_transform.basis * Vector3(0, 0, -build_range)

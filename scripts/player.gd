@@ -11,12 +11,33 @@ extends CharacterBody3D
 @onready var build_system: Node = $BuildSystem
 @onready var work_system: Node = $WorkSystem
 @onready var phone_system: Node = $PhoneSystem
+@onready var arms: Node = null
+
+var current_tool_id: String = ""
 
 var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 
 func _ready() -> void:
 	add_to_group("player")
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	Inventory.inventory_changed.connect(_on_inventory_changed)
+	_on_inventory_changed()
+
+	# instantiate first-person arms placeholder and attach to head camera
+	var arms_scene := preload("res://scripts/player/arms.gd")
+	# arms.gd is a script for a Node3D; create instance and add as child of head/camera
+	arms = Node3D.new()
+	arms.set_script(arms_scene)
+	head.add_child(arms)
+	# initial update
+	if arms and arms.has_method("update_from_inventory"):
+		arms.update_from_inventory()
+
+func _on_inventory_changed() -> void:
+	var selected_item: Dictionary = Inventory.get_selected_item()
+	current_tool_id = selected_item.get("id", "")
+	if arms and arms.has_method("update_from_inventory"):
+		arms.update_from_inventory()
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED and not build_system.menu_open and not work_system.is_working and not phone_system.is_open:
@@ -28,6 +49,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	elif event is InputEventMouseButton and event.pressed and Input.mouse_mode == Input.MOUSE_MODE_VISIBLE:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+	for slot in range(9):
+		if event.is_action_pressed("hotbar_%d" % (slot + 1)):
+			Inventory.select_slot(slot)
+			break
 
 func _physics_process(delta: float) -> void:
 	if work_system.is_working or phone_system.is_open:

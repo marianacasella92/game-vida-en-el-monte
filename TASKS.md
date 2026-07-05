@@ -72,5 +72,43 @@ Diseño del primer ítem en [docs/design/milestone2_escritorio.md](docs/design/m
 - [x] Reemplazar geometría placeholder de pared/piso/techo por assets reales (Medieval Village MegaKit)
 - [ ] Curar/organizar el resto de los packs descargados a medida que se vayan necesitando (huerta, interior, naturaleza, etc. — no urgente todavía, es para milestones futuros)
 
+## Milestone 4 — Huerta básica + necesidades personales
+Objetivo del sprint: cerrar el siguiente paso del loop de juego según el GDD, incorporando una huerta simple y una rutina de cuidado básico para que el gameplay se sienta más vivo sin entrar todavía en energía/agua complejas.
+
+### Sprint 4.1 — Base de cultivo
+- [x] Definir una grilla simple de slots de cultivo en el terreno (ej. 3x3 o 4x4) y mostrarla visualmente.
+- [x] Permitir sembrar una semilla desde una acción simple del jugador (ej. interactuar con un slot vacío).
+- [x] Mostrar estados del cultivo: vacío / creciendo / listo para cosechar.
+- [x] Guardar el estado de los cultivos en el sistema de guardado actual.
+
+### Sprint 4.2 — Ciclo de cuidado y cosecha
+- [ ] Implementar un riego manual simple con una herramienta básica (regadera o acción de "regar").
+- [ ] Agregar crecimiento por tiempo de juego entre estados (sin depender de energía ni agua complejas).
+- [ ] Permitir cosechar y convertir el cultivo en comida/recursos para consumo.
+- [ ] Añadir una acción simple de consumir comida para recuperar hambre.
+
+### Sprint 4.3 — Necesidades básicas
+- [ ] Crear un sistema simple de hambre y sueño con valores y regeneración.
+- [ ] Mostrar barras o indicadores visuales en HUD.
+- [ ] Añadir una interacción básica para dormir y recuperar sueño (cama o spot de descanso simple).
+- [ ] Dar feedback claro cuando el personaje está cansado o hambriento.
+
+### Sprint 4.4 — Día/noche mínimo
+- [ ] Implementar un ciclo día/noche básico con transición visual simple.
+- [ ] Limitar o cambiar el comportamiento del juego según la hora del día (ej. trabajar de día, dormir de noche).
+- [ ] Asegurar que el sistema no rompa el loop de construcción/trabajo existente.
+
+### Sprint 4.5 — Pulido y cierre del sprint
+- [ ] Revisar balance de tiempos, costos y feedback de interacción.
+- [ ] Añadir mensajes/UI de ayuda para sembrar, regar, cosechar y dormir.
+- [ ] Probar guardado/carga con cultivos y necesidades activas.
+- [ ] Preparar la siguiente iteración con prioridad en agua/energía o en pulido del mini-juego de trabajo.
+
+### Fuera de alcance de este sprint
+- Sistema completo de agua y energía.
+- Clima, estaciones complejas o riego automatizado.
+- Árbol tecnológico completo.
+- Más de un mini-juego de trabajo.
+
 ## Fuera de alcance del vertical slice (no tocar todavía)
 Cultivo/huerta, energía (solar/batería), agua, hambre/sueño, día-noche/clima, árbol tecnológico completo, más de un mini-juego, novio/perro/familia (Fase 2).

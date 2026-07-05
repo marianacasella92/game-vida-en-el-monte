@@ -19,6 +19,7 @@ func _ready() -> void:
 	area_shape.shape = shape
 	area.body_entered.connect(_on_body_entered)
 	area.body_exited.connect(_on_body_exited)
+	prompt.visible = false
 
 func _on_body_entered(body: Node3D) -> void:
 	if body.is_in_group("player"):
@@ -28,6 +29,12 @@ func _on_body_entered(body: Node3D) -> void:
 func _on_body_exited(body: Node3D) -> void:
 	if body.is_in_group("player"):
 		_player = null
+		prompt.visible = false
+
+func _process(_delta: float) -> void:
+	if _player:
+		prompt.visible = true
+	else:
 		prompt.visible = false
 
 func _unhandled_input(event: InputEvent) -> void:

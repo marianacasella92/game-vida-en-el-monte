@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://d3vk0683s75ht"
-path.s3tc="res://.godot/imported/T_Brick_BaseColor.png-3ea878b0b306d6a155b161d087b8a719.s3tc.ctex"
+path.s3tc="res://.godot/imported/T_Brick_BaseColor.png-384540d86a5d0f30adee0f065a65855c.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -11,8 +11,8 @@ metadata={
 
 [deps]
 
-source_file="res://assets/building/Medieval Village MegaKit[Standard]/textures/T_Brick_BaseColor.png"
-dest_files=["res://.godot/imported/T_Brick_BaseColor.png-3ea878b0b306d6a155b161d087b8a719.s3tc.ctex"]
+source_file="res://assets/building/Medieval Village MegaKit[Standard]/Textures/T_Brick_BaseColor.png"
+dest_files=["res://.godot/imported/T_Brick_BaseColor.png-384540d86a5d0f30adee0f065a65855c.s3tc.ctex"]
 
 [params]
 
