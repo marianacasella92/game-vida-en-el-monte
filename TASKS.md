@@ -45,10 +45,14 @@ Diseño del primer ítem en [docs/design/milestone2_escritorio.md](docs/design/m
 
 - [x] Objeto interactuable "escritorio" (detección de proximidad + prompt "Presioná E") — asset real `Desk.glb`, se coloca desde el catálogo de construcción (tecla `G`) como una pieza más, rotable con `R`.
 - [x] Estado "trabajando": bloquear movimiento, cambiar cámara/UI — al presionar `E` cerca del escritorio, la jugadora se teletransporta al `SitSpot` de la pieza, se bloquea movimiento/mouse-look/construcción, y aparece un panel placeholder ("Trabajando... (Esc para salir)"). `Esc` restaura todo. Probado y confirmado funcionando en el editor (ver bug de grupos en el doc de diseño). Todavía sin mini-juego real adentro del panel.
-- [ ] Mini-juego "dar clase en vivo"
-- [ ] Lógica de tiempo límite y puntaje
-- [ ] Al terminar: acreditar dinero ganado
-- [ ] Volver al modo movimiento normal al salir
+- [x] Mini-juego "dar clase en vivo" — "Malabares de atención" (GDD 4.6): 3 alumnos con barra de atención que decae, se sube arrastrando un ícono aleatorio hacia el alumno elegido. Pendiente de probar en el editor.
+- [x] Lógica de tiempo límite y puntaje — sesión de 50s, eventos random de "distracción" sobre un alumno al azar, promedio final ≥70% = "buena clase".
+- [x] Al terminar: acreditar dinero ganado — autoload mínimo `Economy` (`autoload/economy.gd`), sin UI de marketplace todavía (eso es Milestone 3).
+- [x] Volver al modo movimiento normal al salir — reusa `Escape`/`WorkSystem.stop_working()` ya existente, tanto para salir de la clase a mitad de camino (sin cobrar) como para cerrar la pantalla de resultado.
+
+**Deuda técnica pendiente (mini-juego):**
+- [ ] Mejorar la UI del mini-juego — hoy es placeholder (emojis y `ProgressBar` simples, sin arte real ni pulido visual).
+- [ ] Agregar un mini-tutorial antes de la primera clase, que se pueda omitir y no se vuelva a mostrar (checkbox "No mostrar de nuevo").
 
 ## Milestone 3 — Marketplace mínimo
 - [ ] Sistema de economía global (dinero accesible desde todo el juego)

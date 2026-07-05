@@ -2,15 +2,15 @@ extends Node3D
 
 ## Estado "trabajando": al sentarse en un escritorio, bloquea el movimiento
 ## normal del jugador, mueve la cámara a la posición fija del escritorio
-## (nodo "SitSpot" de la pieza) y muestra una UI simple encima. Todavía no
-## hay mini-juego real (próximo ítem de Milestone 2) — por ahora la UI es
-## un placeholder y la única salida es Escape.
+## (nodo "SitSpot" de la pieza) y muestra el mini-juego de "dar clase en
+## vivo" (attention_minigame.gd) encima.
 
 var is_working: bool = false
 
 @onready var player: CharacterBody3D = get_parent()
 @onready var head: Node3D = get_node("../Head")
 @onready var work_panel: Control = $WorkUILayer/Panel
+@onready var minigame: Control = $WorkUILayer/Panel/AttentionMinigame
 
 var _saved_transform: Transform3D
 var _saved_head_pitch: float = 0.0
@@ -18,6 +18,7 @@ var _saved_head_pitch: float = 0.0
 func _ready() -> void:
 	add_to_group("work_system")
 	work_panel.visible = false
+	minigame.session_ended.connect(_on_session_ended)
 
 func start_working(desk: Node3D) -> void:
 	if is_working:
@@ -33,6 +34,7 @@ func start_working(desk: Node3D) -> void:
 	is_working = true
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	work_panel.visible = true
+	minigame.start_session()
 
 func stop_working() -> void:
 	if not is_working:
@@ -43,6 +45,10 @@ func stop_working() -> void:
 	head.rotation.x = _saved_head_pitch
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	work_panel.visible = false
+	minigame.reset()
+
+func _on_session_ended(_average: float, money_awarded: int) -> void:
+	Economy.add_money(money_awarded)
 
 ## Se revisa en _process (no en _unhandled_input) para que este cierre de
 ## sesión se procese siempre después del manejo genérico de "ui_cancel" que

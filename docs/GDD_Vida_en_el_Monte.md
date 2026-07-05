@@ -42,6 +42,7 @@ La curva ideal: **la jugadora empieza con tareas 100% manuales y de supervivenci
 - Colocación modular de paredes, techos, pisos, puertas, ventanas.
 - Sistema de snap-to-grid con flexibilidad para diseño libre.
 - Decoración interior (mobiliario, terminado).
+- **Materiales e ítems variados:** habrá varios materiales/ítems de construcción distintos (no uno solo), cada uno obtenible comprándolo en el marketplace o consiguiendo el material correspondiente (recolección manual) — conectado con la "doble vía de obtención" definida en 4.2.
 
 ### 4.2 Economía de recursos
 - Recursos base: madera, agua, piedra, comida.
@@ -55,13 +56,54 @@ La curva ideal: **la jugadora empieza con tareas 100% manuales y de supervivenci
 - Consumo: cada edificio/máquina tiene una demanda energética.
 - Factores ambientales: clima y estación afectan generación solar/eólica.
 
+**Distribución — por zonas con cableado:**
+- Cada edificio/máquina necesita estar **conectado por cable** a una fuente de energía (generador o batería) para funcionar — no es un número global abstracto, hay que planificar el tendido físico de cables por el terreno/casa.
+- Esto convierte la instalación eléctrica en una decisión de diseño real: dónde poner el generador, cómo tender los cables, qué conectás primero.
+
+**Qué pasa si falta energía (prioridad de cargas, como un sistema off-grid real):**
+- La jugadora puede marcar qué circuitos son **críticos** (ej: heladera, bomba de agua/riego) al conectarlos.
+- Si la generación/batería no alcanza para todo, los circuitos **no críticos** (luces decorativas, algún aparato secundario) se cortan primero automáticamente para preservar los críticos.
+- No es un "fallo" duro ni rompe nada — es priorización automática, consistente con el tono tranquilo del juego (sin penalización dura).
+- Esto le da a la jugadora una decisión real de diseño: decidir qué es crítico o no al planificar su instalación, en vez de que el juego lo imponga.
+
 ### 4.4 Agua
-- Captación (lluvia, pozo).
-- Potabilización (filtro básico → sistema UV eléctrico en tiers avanzados).
-- Uso: consumo personal, riego, animales.
+
+**3 fuentes de obtención (distinto costo/esfuerzo cada una):**
+- **Río/fuente lejana:** está lejos del terreno inicial — hay que ir caminando con un recipiente y volver. Disponible desde el día 1, sin tecnología, pero consume tiempo real de juego. Se puede automatizar más adelante (bomba) para no tener que caminar cada vez.
+- **Captación de lluvia:** canaletas en el techo que dirigen el agua a un tanque/aljibe. Gratis y pasiva, pero depende del clima (conecta con el sistema de clima de 4.9) — no controlable, oportunista. Tanques más grandes permiten acumular más para estirar la reserva en días secos.
+- **Pozo:** requiere inversión (plata + una tarea de construcción) para cavar/instalar. Una vez hecho, da agua confiable y constante, sin depender del clima ni de caminatas.
+
+**Progresión tecnológica del agua (conectada al árbol tecnológico general, sección 4.7):**
+- **Tier 1:** balde a mano desde el río, o captación de lluvia básica (barril simple).
+- **Tier 2:** pozo construido + primeras bombas manuales/mecánicas.
+- **Tier 3:** bomba eléctrica (conectada al sistema de energía — el agua ahora también depende de electricidad).
+- **Tier 4:** riego automatizado que usa el agua acumulada sin intervención manual.
+
+**Potabilización:**
+- El agua recolectada (de cualquiera de las 3 fuentes) **no es utilizable directamente** para tomar/cocinar — necesita potabilizarse primero.
+- **Filtro básico** (disponible desde tiers tempranos) → **sistema UV eléctrico** en tiers avanzados (más rápido/confiable, pero depende de energía).
+
+**Almacenamiento con capacidad limitada:**
+- El agua se guarda en un tanque/aljibe con **capacidad máxima**, similar a cómo funciona la batería de energía — hay que gestionar cuánta agua se acumula y cuánta se consume, no es ilimitado.
+- Esto refuerza la necesidad de planificar: tanques más grandes, o combinar fuentes, para no quedarse sin agua en época seca.
+
+- Uso: consumo personal (potabilizada), riego (no necesita ser potable), animales.
 
 ### 4.5 Cultivo y alimentación
-- Huerta propia: plantar, regar, cosechar, con ciclos de crecimiento por estación.
+
+**Sistema de plantado (mismo esquema que el modo construcción):**
+- El terreno se divide en **slots/bloques de tierra**, igual que la lógica de snap-to-grid de construcción — cada bloque es el único lugar habilitado para plantar hierbas, cultivos y hortalizas.
+- Cada planta tiene un **tiempo de crecimiento medido en días de juego** (no minutos/horas reales) — esto la hace compatible con sesiones cortas de 1-3 hs/semana: se planta, se riega, y el cultivo avanza con el paso de los días in-game mientras la jugadora hace otras cosas.
+
+**Sistema de riego — 3 niveles (conectan con agua y energía ya definidos):**
+1. **Regadera artesanal (manual, sin tecnología):** hecha de madera, estilo artesanal. Se llena con agua (de cualquiera de las 3 fuentes ya definidas) y se usa como herramienta — la jugadora camina y tira agua manualmente sobre cada slot de tierra, uno por uno.
+2. **Manguera (requiere conexión a agua):** tiene que estar conectada físicamente a una fuente de agua (tanque/pozo). El riego sigue siendo manual (la jugadora la dirige), pero ya no hace falta cargar/recargar una regadera — más rápido y menos viajes.
+3. **Sistema de riego automatizado (requiere agua + electricidad):** conectado tanto a la red de agua como a la red eléctrica (cableado, como el resto de las máquinas). Riega solo, sin intervención manual — la evolución final, coherente con el Tier 4 del árbol tecnológico ("riego automatizado").
+
+**Qué pasa si falta riego:**
+- Sin penalización dura (consistente con el tono del juego): si una planta no se riega a tiempo, **crece más lento o se estanca**, pero no muere. Evita frustración si la jugadora se ausenta una sesión.
+- **Si llueve, los cultivos se riegan solos** (conecta con el sistema de clima de 4.9) — un día de lluvia cubre el riego automáticamente sin que la jugadora tenga que hacer nada, reforzando que el clima es parte activa del gameplay, no solo estético.
+
 - Cocinar con lo cultivado (autoconsumo real, no solo venta).
 - Posibilidad de animales chicos (gallinas, por ejemplo) para huevos/leche, sin que sea obligatorio.
 
@@ -80,6 +122,7 @@ La curva ideal: **la jugadora empieza con tareas 100% manuales y de supervivenci
 - Existe una tienda online dentro del juego (estilo marketplace real, con "de todo") donde la jugadora compra materiales, herramientas, semillas, paneles solares, muebles, etc.
 - El dinero para comprar ahí sale exclusivamente del trabajo de programación (comunidad + comisiones + productos) — no hay otra fuente de ingreso relevante.
 - Esto resuelve el problema central que la jugadora no quiere: no hace falta explorar ni recolectar todo a mano, porque la mayoría de los materiales se pueden comprar directamente con lo ganado trabajando.
+- **Precios fijos, sin dinamismo** (por ahora) — no hay ofertas, fluctuación de precios ni economía dinámica. Se deja como posible mejora futura, especialmente si el juego eventualmente se publica/vende.
 
 **Recolección manual (talar, plantar, juntar piedras, etc.):**
 - Existe y es parte de la vida de campo (por ejemplo, cultivar tu propia huerta sigue siendo manual, porque es parte del pilar de autosuficiencia alimentaria).
@@ -133,7 +176,13 @@ La curva ideal: **la jugadora empieza con tareas 100% manuales y de supervivenci
   - Al completar esa acción, se genera un **producto** (curso grabado, plantilla, ebook) que se suma al catálogo/vidriera de la jugadora.
   - **Cada producto del catálogo genera ingreso pasivo recurrente** de ahí en adelante, sin que la jugadora tenga que volver a interactuar con él — funciona como una fuente de ingreso "de fondo" que sigue sumando mientras la jugadora hace otras cosas (cultivar, construir, etc.).
   - Esto conecta directo con lo ya definido en 4.6 como **"productos vendibles de ingreso fijo"** — este mini-juego/acción es la forma concreta de generarlos.
-  - A definir más adelante: ¿el ingreso pasivo de cada producto decae con el tiempo (se "desactualiza" el curso) o es constante mientras no se reemplace? ¿Hay un límite de productos en el catálogo o se pueden acumular indefinidamente?
+  - **Por ahora:** el ingreso pasivo de cada producto es **fijo y constante** (no decae con el tiempo), y **sin límite** de cuántos productos puede tener la jugadora en el catálogo. Se mantiene simple para esta primera versión.
+  - **Ideas futuras a explorar (no implementar todavía, anotado para más adelante):** este sistema tiene mucho potencial de profundidad —
+    - Variable de **confiabilidad/calidad** del producto (afecta cuánto vende con el tiempo).
+    - Ingreso ligado más directamente al tamaño de la **comunidad** (no fijo, sino proporcional).
+    - Posibilidad de **pagar publicidad en redes** (gasto pasivo o activo) para potenciar ventas — agregaría una capa de inversión/riesgo económico.
+    - Posible decaimiento con el tiempo (el contenido se "desactualiza").
+    - Límite de catálogo o algún costo de mantenimiento por producto activo.
 - Otras acciones de trabajo (corregir código, responder consultas, etc.) a definir con la misma lógica: cada una con su propio mini-juego cortito y distinto.
 
 **Crecimiento de comunidad — NO es un mini-juego:**
@@ -143,11 +192,29 @@ La curva ideal: **la jugadora empieza con tareas 100% manuales y de supervivenci
 - A definir en detalle más adelante: ¿cómo se representa visualmente "trabajar" en cada mini-juego? ¿Cuánto tiempo del día ocupa trabajar vs. las tareas del campo?
 
 ### 4.7 Árbol tecnológico / progresión de era
+
+**Mecanismo de desbloqueo (igual para los 4 sistemas, cada uno con su propio avance independiente):**
+- Cada sistema (energía, agua, cultivo, construcción) tiene su **propio árbol de tiers**, sin relación entre sí — podés tener el agua en Tier 3 y la energía todavía en Tier 1.
+- Para desbloquear el siguiente tier de un sistema hacen falta **dos condiciones a la vez**:
+  1. **Plata suficiente** para comprarlo en el marketplace.
+  2. **Uso acumulado** del nivel actual (ej: cantidad de veces que regaste con la regadera manual, días de juego con el pozo instalado) — un contador simple por sistema.
+- Cuando se cumplen ambas, la mejora aparece disponible para comprar. Esto da sensación de progreso "ganado" (no solo comprado) sin necesitar hitos narrativos particulares para cada tier.
+
 - **Tier 1 — Rural básico:** herramientas manuales, leña, pozo de agua, huerta simple.
 - **Tier 2 — Mecanizado:** herramientas con motor simple, biodigestor, primeras bombas de agua.
 - **Tier 3 — Eléctrico:** paneles solares chicos, batería básica, iluminación eléctrica, riego con temporizador.
 - **Tier 4 — Renovable avanzado:** eólica, batería de gran capacidad, riego automatizado, invernadero climatizado.
 - **Tier 5 — Autosuficiencia total:** red energética propia estable, huerta y energía funcionando con mantenimiento mínimo, foco total en el trabajo de programación y disfrute del espacio.
+
+**Desglose por sistema (cada uno con su propio avance independiente):**
+
+| Tier | Energía | Agua | Cultivo | Construcción |
+|---|---|---|---|---|
+| **1** | Leña/fuego básico (calor, cocina) | Balde a mano (río) o barril de lluvia simple | Regadera artesanal, slots básicos de tierra | Madera básica |
+| **2** | Biodigestor (biogás) | Pozo construido + filtro básico de potabilización | Más slots disponibles, herramientas de cosecha más rápidas | Ladrillo |
+| **3** | Panel solar chico + batería básica + cableado por zonas | Manguera conectada + bomba eléctrica + filtro UV | Manguera conectada a agua | Materiales modernos (cemento/estructuras reforzadas) |
+| **4** | Eólica + batería de gran capacidad | Sistema de riego automatizado (agua + electricidad) | Riego automatizado (agua + electricidad) | Materiales premium/estéticos avanzados |
+| **5** | Red estable, prioridad de cargas automática funcionando sin intervención | (integrado con tier 4, autosuficiencia total) | (integrado con tier 4, autosuficiencia total) | (variedad completa de materiales, foco en diseño/decoración) |
 
 ### 4.8 Necesidades personales de la jugadora
 - **Hambre:** baja con el tiempo, se recupera comiendo (idealmente con lo cultivado/cocinado — refuerza el pilar de autosuficiencia).

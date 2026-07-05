@@ -1,0 +1,20 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/work/student_widget.gd" id="1"]
+
+[node name="StudentWidget" type="VBoxContainer"]
+custom_minimum_size = Vector2(160, 160)
+script = ExtResource("1")
+
+[node name="Avatar" type="Label" parent="."]
+mouse_filter = 2
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 48
+text = "🧑‍🎓"
+
+[node name="AttentionBar" type="ProgressBar" parent="."]
+mouse_filter = 2
+custom_minimum_size = Vector2(0, 24)
+max_value = 100.0
+value = 100.0
+show_percentage = false

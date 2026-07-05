@@ -1,4 +1,4 @@
-# Milestone 2, ítem 1 — Escritorio interactuable: especificación
+# Milestone 2 — Escritorio + mini-juego: especificación
 
 Diseño cerrado para el primer ítem de Milestone 2 (ver [GDD](../GDD_Vida_en_el_Monte.md), sección 4.6 y 7.2, y [TASKS.md](../../TASKS.md)).
 
@@ -25,7 +25,7 @@ Diseño cerrado para el primer ítem de Milestone 2 (ver [GDD](../GDD_Vida_en_el
 - **Trigger:** presionar `interact` (`E`) mientras la jugadora está dentro del área de proximidad del escritorio (ver ítem 1).
 - **Cámara:** al entrar, el jugador (`CharacterBody3D`) se teletransporta a un nodo `Marker3D` hijo de la pieza (`SitSpot`), y el pitch de la cámara (`Head.rotation.x`) se resetea a 0. Al salir, se restaura la transform y el pitch originales. Se eligió mover al jugador entero (no solo la cámara) para que la física quede consistente con "estar sentada ahí".
   - **Posición de `SitSpot`:** estimada a mano (1.2m en frente del escritorio, sobre el eje -Z local, mirando hacia el escritorio), asumiendo que ese es el lado donde queda el espacio para las piernas/silla del modelo. No se pudo confirmar visualmente. Es un `Marker3D`, así que si al probarlo en el editor la jugadora queda mirando para el lado equivocado (o metida dentro del escritorio), se puede arrastrar/rotar ese nodo directamente en el editor sin tocar código.
-- **UI:** placeholder simple (`WorkSystem/WorkUILayer/Panel` en `player.tscn`) — fondo oscuro + texto "Trabajando... (Esc para salir)". El mini-juego real (ítem siguiente) se va a dibujar dentro de este mismo panel.
+- **UI:** `WorkSystem/WorkUILayer/Panel` en `player.tscn` — fondo oscuro + el mini-juego real (ver más abajo) instanciado adentro.
 - **Bloqueo de movimiento:** `player.gd` corta `_physics_process` y el mouse-look por completo mientras `WorkSystem.is_working` es `true`.
 - **Bloqueo cruzado con construcción:** mientras se trabaja, `build_system.gd` no procesa ningún input ni actualiza el fantasma — si no, un click para cerrar el panel de trabajo podía terminar borrando una pieza construida cercana (la cámara sigue apuntando a donde estaba antes de sentarse).
 - **Salida:** `Escape` (acción `ui_cancel`). `WorkSystem` la revisa en `_process` (no en `_unhandled_input`) a propósito: `player.gd` ya tiene un manejo genérico de `ui_cancel` que libera el mouse sin condiciones, y como Godot despacha los eventos de input antes de correr `_process` en el mismo frame, esto garantiza que la recaptura del mouse al salir del estado "trabajando" siempre sea la última palabra, sin depender del orden entre `_unhandled_input` de nodos hermanos (que no está garantizado).
@@ -42,7 +42,25 @@ Diseño cerrado para el primer ítem de Milestone 2 (ver [GDD](../GDD_Vida_en_el
   - **Arreglo:** mismo enfoque, `add_to_group("work_system")` en `_ready()` de `work_system.gd`.
 - **Lección general:** para nodos que viven pre-colocados dentro de otra escena (como `Player` y sus hijos dentro de `world.tscn`), declarar grupos por código (`add_to_group()` en `_ready()`) en vez de confiar en la propiedad `groups=[...]` del `.tscn`. Para piezas que se instancian dinámicamente por código en runtime (paredes, techos, el propio escritorio), la declaración en el `.tscn` sí es confiable.
 
-## Fuera de alcance de este ítem (queda para los próximos ítems de Milestone 2)
-- Cualquier mini-juego o lógica real de "trabajar" (la UI de este ítem es placeholder).
-- Lógica de tiempo límite y puntaje.
-- Acreditar dinero.
+## Ítems 3-6 — Mini-juego "Malabares de atención"
+
+Plan completo discutido y aprobado antes de programar (ver historial de chat); diseño cerrado en el GDD sección 4.6, con los puntos que el GDD dejaba abiertos definidos acá:
+
+- **Qué se arrastra:** un solo ícono en un "tray" fijo (abajo del panel), con un glifo (emoji: 🖐️ ❤️ ⭐ 💡 🙋) elegido al azar cada vez que aparece uno nuevo — variedad puramente visual, no hay distintos "tipos" a nivel de mecánica. Se arrastra a cualquiera de los 3 alumnos (esa elección es el "malabares"). `scripts/work/drag_icon.gd`, usa el drag-and-drop nativo de Godot (`_get_drag_data`); al soltarse con éxito (detectado vía `NOTIFICATION_DRAG_END` + `get_viewport().gui_is_drag_successful()`), elige un glifo nuevo sin necesitar que el alumno le avise de vuelta.
+- **Alumnos** (`scripts/work/student_widget.gd` + `scenes/work/student_widget.tscn`, instanciado x3 en `attention_minigame.tscn`): `ProgressBar` de atención 0-100 que decae sola (`decay_rate`, default 2.0/seg), `_can_drop_data`/`_drop_data` para recibir el ícono (+30, clamp a 100). Al llegar a 0 queda "desconectado" (`is_disconnected`, barra atenuada con `modulate` gris) — **se puede reconectar** arrastrándole atención de nuevo, no es un estado permanente (no hay penalización dura en este juego).
+- **Sesión** (`scripts/work/attention_minigame.gd` + `scenes/work/attention_minigame.tscn`, instanciado dentro de `WorkSystem/WorkUILayer/Panel`):
+  - Duración `session_duration` = 50s (dentro del rango 45-60s del GDD).
+  - Eventos de "distracción": cada `randf_range(8, 14)` segundos, un alumno activo al azar recibe `decay_rate x3` durante 4 segundos.
+  - Al terminar el tiempo: promedio de atención de los alumnos **no desconectados** (si todos se desconectaron, promedio = 0). `≥70%` → "buena clase" → `$100`; si no, `$round(promedio)`. Números placeholder, a balancear jugando.
+  - Señal `session_ended(average, money_awarded)`.
+  - Vista de resultado (`ResultsOverlay`) con el texto y "Esc para volver" — cerrar con Escape reusa `WorkSystem.stop_working()` ya existente (mismo mecanismo que cierra el estado "trabajando" en cualquier momento, incluso a mitad de clase sin cobrar nada si se sale antes de tiempo).
+- **Economía** (`autoload/economy.gd`, registrado en `project.godot` bajo `[autoload]`): singleton mínimo con `money: int` + `add_money(amount)` + señal `money_changed`. `WorkSystem` conecta `minigame.session_ended` para acreditar la plata. Sin UI de marketplace todavía — eso es Milestone 3, que va a construir sobre este mismo autoload.
+- **Integración con `WorkSystem`:** `start_working()` ahora también llama a `minigame.start_session()`; `stop_working()` llama a `minigame.reset()` (corta timers si se sale a mitad de clase).
+
+**Fuera de alcance de este plan (documentado para más adelante):**
+- Escalado de cantidad de alumnos según crecimiento de comunidad (el GDD lo describe como progresión entre sesiones, no para el vertical slice — v1 fija en 3 alumnos).
+- Barra de crecimiento de comunidad en sí (no está en ningún ítem de Milestone 2 o 3 del TASKS.md actual).
+- UI de marketplace / gastar la plata (Milestone 3, separado).
+- Los otros 2 modos de mini-juego del GDD ("Ritmo de tipeo", "Termostato de energía") — quedan para después del vertical slice.
+
+**Pendiente:** probar en el editor (drag-and-drop, decaimiento, eventos de distracción, pantalla de resultado, acumulación de plata entre sesiones) y ajustar los números placeholder según cómo se sienta jugado.
