@@ -61,7 +61,7 @@ func _physics_process(delta: float) -> void:
 		velocity.y = jump_velocity
 
 	var input_dir: Vector2 = Input.get_vector("move_left", "move_right", "move_forward", "move_back")
-	var move_speed: float = sprint_speed if Input.is_action_pressed("sprint") else speed
+	var move_speed: float = (sprint_speed if Input.is_action_pressed("sprint") else speed) * PlayerNeeds.get_move_speed_multiplier()
 	var direction: Vector3 = (transform.basis * Vector3(input_dir.x, 0.0, input_dir.y)).normalized()
 
 	if direction:

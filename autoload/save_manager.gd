@@ -13,6 +13,16 @@ func _ready() -> void:
 	timer.autostart = true
 	timer.timeout.connect(save_game)
 	add_child(timer)
+	PlayerNeeds.died.connect(_on_player_died)
+
+## GDD 4.8: el único "game over" del juego — al llegar la vida a 0, se
+## recarga el último guardado (no un reinicio total como reset_game()).
+## grant_death_grace() evita un loop de muerte instantánea si ese guardado
+## también tenía hambre/sueño en niveles críticos.
+func _on_player_died() -> void:
+	print("[needs] murió, recargando último guardado")
+	load_game()
+	PlayerNeeds.grant_death_grace()
 
 func save_game() -> void:
 	var build_system: Node = get_tree().get_first_node_in_group("build_system")

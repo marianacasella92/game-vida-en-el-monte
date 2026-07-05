@@ -93,14 +93,23 @@ Objetivo del sprint: cerrar el siguiente paso del loop de juego según el GDD, i
 
 ### Sprint 4.3 — Necesidades básicas
 - [x] Crear un sistema simple de hambre y sueño con valores y regeneración — `autoload/player_needs.gd`. Hambre decae con el tiempo (100→0 en ~2min de prueba), se recupera comiendo. Sueño decae con el tiempo y más rápido corriendo/trabajando (`_is_exerting()`, GDD 4.8), se recupera durmiendo (restaura todo de una, por ahora).
-- [x] Mostrar barras o indicadores visuales en HUD — `scenes/player/player.tscn` (`Hud/HungerBar`, `Hud/SleepBar`), `scripts/ui/hud.gd`.
+- [x] Mostrar barras o indicadores visuales en HUD — HUD rediseñado por completo (ver sección "Rediseño de HUD" más abajo): `scenes/player/player.tscn` (`Hud/Root/HealthRow|EnergyRow|HungerRow|MoneyRow`), `scripts/ui/hud.gd`, `scripts/ui/hud_style.gd`.
 - [x] Añadir una interacción básica para dormir y recuperar sueño — pieza nueva "Cama simple" (`scenes/build/bed.tscn` + `scripts/build/bed.gd`, mismo patrón de proximidad+prompt que el escritorio), desbloqueada comprándola en el marketplace ($40, como el cajón de madera). **Ojo:** el tamaño de la caja de colisión (`BoxShape3D`) y la posición del área de interacción son estimados a mano, sin confirmar visualmente en el editor — puede necesitar ajuste, igual que pasó con el `SitSpot` del escritorio en su momento.
-- [x] Dar feedback claro cuando el personaje está cansado o hambriento — ambas barras se ponen de color por debajo del 25% (roja hambre, celeste sueño).
+- [x] Dar feedback claro cuando el personaje está cansado o hambriento — ícono de advertencia por barra (no colores tipo semáforo, ver rediseño de HUD).
+- [x] Debuff de movimiento + vida (GDD 4.8) — `autoload/player_needs.gd`: vida baja de a poco cuando hambre o sueño están por debajo del 25% (`is_neglected()`), y la velocidad de movimiento se multiplica por `0.6` en ese estado (`scripts/player.gd`). Regenera sola cuando ninguna de las dos está crítica.
+- [x] Muerte → recargar el último guardado (único sistema con penalización dura del juego) — `PlayerNeeds.died` conectado en `autoload/save_manager.gd`; al morir se llama `load_game()` y después `grant_death_grace()` (pone hambre/sueño en un piso del 40% y vida al máximo) para evitar un loop de muerte instantánea si el último guardado también tenía las necesidades bajas.
 
-**Deuda/pendiente de este sprint (a propósito, ver GDD 4.8):**
-- El debuff de movimiento más lento y la "vida" bajando cuando se descuidan hambre/sueño — todavía no implementado.
-- La consecuencia de "vida en cero" (muerte → reinicio desde el último guardado) — el único sistema con penalización dura del juego, todavía no implementado.
-- Dormir restaura el sueño instantáneo y completo; no hay todavía una transición de tiempo (eso tiene más sentido una vez que exista el ciclo día/noche de Sprint 4.4).
+**Pendiente, no urgente:** dormir sigue restaurando el sueño instantáneo y completo; una transición gradual tiene más sentido una vez que exista el ciclo día/noche de Sprint 4.4.
+
+### Rediseño de HUD (fuera del scope original de Milestone 4, hecho de paso)
+Siguiendo `docs/GameDesign/PXD_Documento_Fundacional_v0.2.md` (HUD pequeño/discreto, sin emojis/cartoon, estética minimalista tipo Ashen): HUD reestructurado con íconos reales (`assets/hud/Icon set 1/`, pack CC0 ya descargado) en vez de texto/emoji, barras finas con borde (`scripts/ui/hud_style.gd`, reusable para fases futuras), sin colores saturados — el aviso de "atención acá" es un ícono de exclamación que aparece bajo el 25%, no un cambio de color de la barra entera. Se sacó el texto "Mano: X" (mareaba, según la usuaria) — la fila de plata ahora solo muestra el ícono + número.
+
+**Fases futuras del rediseño (anotadas, no implementadas):**
+- Hotbar de 9 slots (abajo-centro, ícono + cantidad + selección resaltada) — faltan íconos por ítem (semilla/regadera/zanahoria), el pack bajado es genérico de UI.
+- Notificaciones tipo subtítulo (evento + mensaje, fade in/out) — sistema nuevo desde cero.
+- Banner de eventos/hitos (texto centrado + líneas decorativas) — ídem.
+- Celular 3D diegético (`assets/tools/smartphone.glb` en la mano, animación de apertura, pantalla renderizada vía `SubViewport`) — reemplazaría el panel 2D fullscreen actual del celular.
+- Rediseño del minijuego de la clase (sacar los emojis de `drag_icon.gd`/`student_widget.gd`).
 
 ### Sprint 4.4 — Día/noche mínimo
 - [ ] Implementar un ciclo día/noche básico con transición visual simple.

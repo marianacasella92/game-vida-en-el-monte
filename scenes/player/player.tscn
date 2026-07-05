@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=14 format=3]
 
 [ext_resource type="Script" path="res://scripts/player.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/build/build_system.gd" id="2"]
@@ -9,6 +9,10 @@
 [ext_resource type="Script" path="res://scripts/phone/phone_system.gd" id="7"]
 [ext_resource type="Script" path="res://scripts/phone/marketplace_ui.gd" id="8"]
 [ext_resource type="PackedScene" path="res://scenes/player/arms.tscn" id="9"]
+[ext_resource type="Texture2D" path="res://assets/hud/Icon set 1/1x/Apple 512 px.png" id="10"]
+[ext_resource type="Texture2D" path="res://assets/hud/Icon set 1/1x/Battery - full 512 px.png" id="11"]
+[ext_resource type="Texture2D" path="res://assets/hud/Icon set 1/1x/Money  512 px.png" id="12"]
+[ext_resource type="Texture2D" path="res://assets/hud/Icon set 1/1x/Exclamation sign 512 px.png" id="13"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1"]
 radius = 0.4
@@ -72,25 +76,89 @@ script = ExtResource("8")
 [node name="Hud" type="CanvasLayer" parent="."]
 script = ExtResource("6")
 
-[node name="MoneyLabel" type="Label" parent="Hud"]
+[node name="Root" type="VBoxContainer" parent="Hud"]
 offset_left = 16.0
 offset_top = 16.0
-offset_right = 216.0
-offset_bottom = 40.0
-theme_override_font_sizes/font_size = 20
+offset_right = 232.0
+offset_bottom = 100.0
+theme_override_constants/separation = 4
 
-[node name="HungerBar" type="ProgressBar" parent="Hud"]
-offset_left = 16.0
-offset_top = 48.0
-offset_right = 216.0
-offset_bottom = 68.0
+[node name="HealthRow" type="HBoxContainer" parent="Hud/Root"]
+theme_override_constants/separation = 6
+custom_minimum_size = Vector2(0, 14)
+
+[node name="HealthBar" type="ProgressBar" parent="Hud/Root/HealthRow"]
+custom_minimum_size = Vector2(180, 14)
+size_flags_vertical = 4
 max_value = 100.0
 value = 100.0
+show_percentage = false
 
-[node name="SleepBar" type="ProgressBar" parent="Hud"]
-offset_left = 16.0
-offset_top = 76.0
-offset_right = 216.0
-offset_bottom = 96.0
+[node name="HealthWarning" type="TextureRect" parent="Hud/Root/HealthRow"]
+custom_minimum_size = Vector2(14, 14)
+texture = ExtResource("13")
+expand_mode = 1
+stretch_mode = 5
+visible = false
+
+[node name="EnergyRow" type="HBoxContainer" parent="Hud/Root"]
+theme_override_constants/separation = 6
+custom_minimum_size = Vector2(0, 16)
+
+[node name="EnergyIcon" type="TextureRect" parent="Hud/Root/EnergyRow"]
+custom_minimum_size = Vector2(16, 16)
+texture = ExtResource("11")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="EnergyBar" type="ProgressBar" parent="Hud/Root/EnergyRow"]
+custom_minimum_size = Vector2(180, 14)
+size_flags_vertical = 4
 max_value = 100.0
 value = 100.0
+show_percentage = false
+
+[node name="EnergyWarning" type="TextureRect" parent="Hud/Root/EnergyRow"]
+custom_minimum_size = Vector2(14, 14)
+texture = ExtResource("13")
+expand_mode = 1
+stretch_mode = 5
+visible = false
+
+[node name="HungerRow" type="HBoxContainer" parent="Hud/Root"]
+theme_override_constants/separation = 6
+custom_minimum_size = Vector2(0, 16)
+
+[node name="HungerIcon" type="TextureRect" parent="Hud/Root/HungerRow"]
+custom_minimum_size = Vector2(16, 16)
+texture = ExtResource("10")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="HungerBar" type="ProgressBar" parent="Hud/Root/HungerRow"]
+custom_minimum_size = Vector2(180, 14)
+size_flags_vertical = 4
+max_value = 100.0
+value = 100.0
+show_percentage = false
+
+[node name="HungerWarning" type="TextureRect" parent="Hud/Root/HungerRow"]
+custom_minimum_size = Vector2(14, 14)
+texture = ExtResource("13")
+expand_mode = 1
+stretch_mode = 5
+visible = false
+
+[node name="MoneyRow" type="HBoxContainer" parent="Hud/Root"]
+theme_override_constants/separation = 6
+custom_minimum_size = Vector2(0, 16)
+
+[node name="MoneyIcon" type="TextureRect" parent="Hud/Root/MoneyRow"]
+custom_minimum_size = Vector2(16, 16)
+texture = ExtResource("12")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="MoneyLabel" type="Label" parent="Hud/Root/MoneyRow"]
+theme_override_font_sizes/font_size = 16
+text = "0"

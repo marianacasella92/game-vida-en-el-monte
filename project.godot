@@ -19,10 +19,10 @@ config/icon="res://icon.svg"
 
 Economy="*res://autoload/economy.gd"
 Inventory="*res://autoload/inventory.gd"
+PlayerNeeds="*res://autoload/player_needs.gd"
 SaveManager="*res://autoload/save_manager.gd"
 CropManager="*res://autoload/crop_manager.gd"
 InteractionManager="*res://autoload/interaction_manager.gd"
-PlayerNeeds="*res://autoload/player_needs.gd"
 
 [display]
 
