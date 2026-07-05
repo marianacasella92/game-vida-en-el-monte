@@ -55,3 +55,18 @@ func has_item(item_id: String) -> bool:
 		if slot.get("id", "") == item_id:
 			return true
 	return false
+
+func get_save_data() -> Dictionary:
+	return {"items": items, "selected_slot": selected_slot}
+
+## JSON.stringify() convierte las claves de Dictionary a string siempre — al
+## guardar, los slots (int) del inventario se vuelven "0", "1", etc. en el
+## archivo. Al restaurar hay que reconstruirlos como int, si no items.has(0)
+## (con selected_slot int) deja de encontrar nada guardado.
+func apply_save_data(data: Dictionary) -> void:
+	var raw_items: Dictionary = data.get("items", {})
+	items = {}
+	for key in raw_items:
+		items[int(key)] = raw_items[key]
+	selected_slot = data.get("selected_slot", 0)
+	inventory_changed.emit()

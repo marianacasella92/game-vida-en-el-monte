@@ -2,6 +2,8 @@
 
 Simulador de vida rural en primera persona (Godot). Ver `GDD_Vida_en_el_Monte.md` en la raíz para el diseño completo — no repitas ese contenido en el chat, referenciá el archivo cuando haga falta contexto de diseño.
 
+Para convenciones técnicas y gotchas de Godot ya descubiertos (managers con registro dinámico, timestamps persistidos, escala de modelos importados, etc.), ver [docs/ESTANDARES_TECNICOS.md](docs/ESTANDARES_TECNICOS.md) — actualizarlo cada vez que aparezca un bug/decisión técnica nueva que valga la pena no repetir.
+
 ## Stack
 - Godot 4.7, renderer **Compatibility** (hardware sin GPU dedicada — Intel Iris Xe integrada).
 - Lenguaje: **GDScript únicamente**. No usar C#/.NET.

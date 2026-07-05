@@ -7,18 +7,20 @@ extends Control
 const PANEL_SIZE := Vector2(480, 420)
 
 ## item_id -> {"label": String, "price": int, "description": String}
-## "crate" es el único ítem conectado al sistema de construcción por ahora:
-## comprarlo desbloquea la variante "decor"/"crate" en el CATALOG de
-## build_system.gd (ver "requires_item" ahí). El resto sigue siendo
-## placeholder, sin conexión todavía.
+## "crate" y "bed" están conectados al sistema de construcción: comprarlos
+## desbloquea su variante en el CATALOG de build_system.gd (ver
+## "requires_item" ahí). "tool"/"decor" siguen siendo placeholder, sin
+## conexión todavía.
 ## "seeds" es distinto: no es un desbloqueo único, sino un ítem consumible
 ## (se suma al inventario y se gasta al plantar), por eso tiene "grants_item"
 ## y se puede comprar más de una vez.
 const ITEMS := {
 	"seeds": {"label": "Semilla de Zanahoria", "price": 0, "description": "Para plantar en la huerta.", "grants_item": {"id": "seed", "name": "Semilla de Zanahoria"}},
+	"watering_can": {"label": "Regadera", "price": 0, "description": "Para regar los cultivos plantados — riego manual, GDD 4.5.", "grants_item": {"id": "watering_can", "name": "Regadera"}},
 	"tool": {"label": "Herramienta", "price": 35, "description": "Herramienta genérica de trabajo rural."},
 	"decor": {"label": "Adorno", "price": 15, "description": "Decoración simple para la casa."},
 	"crate": {"label": "Cajón de madera", "price": 25, "description": "Desbloquea el cajón de madera en el catálogo de construcción (tecla G)."},
+	"bed": {"label": "Cama simple", "price": 40, "description": "Desbloquea la cama en el catálogo de construcción (tecla G) — dormir restaura el sueño."},
 }
 
 var money_label: Label

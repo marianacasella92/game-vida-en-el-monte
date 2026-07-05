@@ -86,16 +86,21 @@ Objetivo del sprint: cerrar el siguiente paso del loop de juego según el GDD, i
 - [x] Guardar el estado de los cultivos en el sistema de guardado actual.
 
 ### Sprint 4.2 — Ciclo de cuidado y cosecha
-- [ ] Implementar un riego manual simple con una herramienta básica (regadera o acción de "regar").
-- [ ] Agregar crecimiento por tiempo de juego entre estados (sin depender de energía ni agua complejas).
-- [ ] Permitir cosechar y convertir el cultivo en comida/recursos para consumo.
-- [ ] Añadir una acción simple de consumir comida para recuperar hambre.
+- [x] Implementar un riego manual simple con una herramienta básica (regadera o acción de "regar") — GDD 4.5, nivel 1 (regadera artesanal). Ítem "Regadera" (`watering_can`) gratis en el marketplace; equipada, interactuar con una parcela "creciendo" la riega (`CropManager.water_plot()`). Sin penalización dura: si no se riega, el crecimiento se estanca (label "Necesita agua") pero no retrocede ni muere; regando se reanuda. Niveles 2-3 (manguera, riego automatizado) quedan fuera de alcance, dependen de los sistemas de agua/energía todavía no implementados.
+- [x] Agregar crecimiento por tiempo de juego entre estados (sin depender de energía ni agua complejas) — `CropManager` (`autoload/crop_manager.gd`): progreso acumulado (`crop_progress`) que solo avanza mientras la parcela está regada, 5 etapas visuales (montoncito de tierra + `Carrot_1..4` reales de Quaternius) repartidas en `crop_growth_time` (8s de prueba). Ver bugs resueltos en [docs/ESTANDARES_TECNICOS.md](docs/ESTANDARES_TECNICOS.md).
+- [x] Permitir cosechar y convertir el cultivo en comida/recursos para consumo — al cosechar (`CropManager.harvest_plot()`, tecla `E`), se agrega "Zanahoria" (`carrot`) al inventario. Plantar/regar ahora es con click izquierdo (`CropManager.use_tool()`) — separado de cosechar a propósito, ver [docs/ESTANDARES_TECNICOS.md](docs/ESTANDARES_TECNICOS.md).
+- [x] Añadir una acción simple de consumir comida para recuperar hambre — comer con click izquierdo (mismo input que usar herramienta) teniendo "Zanahoria" equipada; `PlayerNeeds.try_eat()`, tabla `FOOD_ITEMS` (data-driven, igual criterio que `CATALOG`/`ITEMS`).
 
 ### Sprint 4.3 — Necesidades básicas
-- [ ] Crear un sistema simple de hambre y sueño con valores y regeneración.
-- [ ] Mostrar barras o indicadores visuales en HUD.
-- [ ] Añadir una interacción básica para dormir y recuperar sueño (cama o spot de descanso simple).
-- [ ] Dar feedback claro cuando el personaje está cansado o hambriento.
+- [x] Crear un sistema simple de hambre y sueño con valores y regeneración — `autoload/player_needs.gd`. Hambre decae con el tiempo (100→0 en ~2min de prueba), se recupera comiendo. Sueño decae con el tiempo y más rápido corriendo/trabajando (`_is_exerting()`, GDD 4.8), se recupera durmiendo (restaura todo de una, por ahora).
+- [x] Mostrar barras o indicadores visuales en HUD — `scenes/player/player.tscn` (`Hud/HungerBar`, `Hud/SleepBar`), `scripts/ui/hud.gd`.
+- [x] Añadir una interacción básica para dormir y recuperar sueño — pieza nueva "Cama simple" (`scenes/build/bed.tscn` + `scripts/build/bed.gd`, mismo patrón de proximidad+prompt que el escritorio), desbloqueada comprándola en el marketplace ($40, como el cajón de madera). **Ojo:** el tamaño de la caja de colisión (`BoxShape3D`) y la posición del área de interacción son estimados a mano, sin confirmar visualmente en el editor — puede necesitar ajuste, igual que pasó con el `SitSpot` del escritorio en su momento.
+- [x] Dar feedback claro cuando el personaje está cansado o hambriento — ambas barras se ponen de color por debajo del 25% (roja hambre, celeste sueño).
+
+**Deuda/pendiente de este sprint (a propósito, ver GDD 4.8):**
+- El debuff de movimiento más lento y la "vida" bajando cuando se descuidan hambre/sueño — todavía no implementado.
+- La consecuencia de "vida en cero" (muerte → reinicio desde el último guardado) — el único sistema con penalización dura del juego, todavía no implementado.
+- Dormir restaura el sueño instantáneo y completo; no hay todavía una transición de tiempo (eso tiene más sentido una vez que exista el ciclo día/noche de Sprint 4.4).
 
 ### Sprint 4.4 — Día/noche mínimo
 - [ ] Implementar un ciclo día/noche básico con transición visual simple.

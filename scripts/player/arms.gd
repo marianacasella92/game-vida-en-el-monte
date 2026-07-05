@@ -12,6 +12,8 @@ extends Node3D
 @onready var right_arm: MeshInstance3D = $ArmsRoot/PlaceholderRoot/RightArm
 @onready var held_item: MeshInstance3D = $ArmsRoot/PlaceholderRoot/HeldItem
 @onready var real_held_item: MeshInstance3D = %RealHeldItem
+@onready var watering_can_visual: Node3D = %WateringCanVisual
+@onready var real_watering_can_visual: Node3D = %RealWateringCanVisual
 
 func _ready() -> void:
 	_apply_materials()
@@ -39,13 +41,16 @@ func update_from_inventory() -> void:
 	real_model_root.visible = showing_real
 	placeholder_root.visible = not showing_real
 
-	# show the held item only on whichever arms are currently active
-	var has_item := not sel.is_empty()
-	held_item.visible = not showing_real and has_item
-	real_held_item.visible = showing_real and has_item
+	var id: String = sel.get("id", "") if not sel.is_empty() else ""
+	var is_watering_can := id == "watering_can"
 
-	if has_item:
-		var id: String = sel.get("id", "")
+	# la regadera tiene su propio modelo; el resto de los ítems usa la cajita genérica
+	held_item.visible = not showing_real and id != "" and not is_watering_can
+	real_held_item.visible = showing_real and id != "" and not is_watering_can
+	watering_can_visual.visible = not showing_real and is_watering_can
+	real_watering_can_visual.visible = showing_real and is_watering_can
+
+	if held_item.visible or real_held_item.visible:
 		var mat: StandardMaterial3D = held_item.material_override
 		if id == "seed":
 			mat.albedo_color = Color(0.9, 0.7, 0.3)

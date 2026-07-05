@@ -56,6 +56,12 @@ const CATALOG := {
 			"plot": {"label": "Parcela simple", "scene": preload("res://scenes/build/garden_plot.tscn")},
 		},
 	},
+	"bed": {
+		"label": "Cama",
+		"variants": {
+			"plain": {"label": "Cama simple", "scene": preload("res://scenes/build/bed.tscn"), "requires_item": "bed"},
+		},
+	},
 }
 
 @onready var camera: Camera3D = get_node("../Head/Camera3D")
@@ -291,7 +297,11 @@ func serialize_pieces() -> Array:
 		}
 		# include crop metadata for garden pieces if present
 		if piece.has_meta("crop_state"):
-			entry["meta"] = {"crop_state": piece.get_meta("crop_state"), "crop_started_at": piece.get_meta("crop_started_at", 0)}
+			entry["meta"] = {
+				"crop_state": piece.get_meta("crop_state"),
+				"crop_progress": piece.get_meta("crop_progress", 0.0),
+				"watered_until": piece.get_meta("watered_until", 0.0),
+			}
 		result.append(entry)
 	return result
 
@@ -320,7 +330,8 @@ func load_pieces(data: Array) -> void:
 			var meta: Dictionary = entry["meta"]
 			if meta.has("crop_state"):
 				piece.set_meta("crop_state", meta.get("crop_state"))
-				piece.set_meta("crop_started_at", meta.get("crop_started_at", 0))
+				piece.set_meta("crop_progress", meta.get("crop_progress", 0.0))
+				piece.set_meta("watered_until", meta.get("watered_until", 0.0))
 
 func _build_ray_target() -> Vector3:
 	return camera.global_position + camera.global_transform.basis * Vector3(0, 0, -build_range)

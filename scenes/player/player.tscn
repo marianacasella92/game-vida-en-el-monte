@@ -70,6 +70,7 @@ anchor_bottom = 1.0
 script = ExtResource("8")
 
 [node name="Hud" type="CanvasLayer" parent="."]
+script = ExtResource("6")
 
 [node name="MoneyLabel" type="Label" parent="Hud"]
 offset_left = 16.0
@@ -77,4 +78,19 @@ offset_top = 16.0
 offset_right = 216.0
 offset_bottom = 40.0
 theme_override_font_sizes/font_size = 20
-script = ExtResource("6")
+
+[node name="HungerBar" type="ProgressBar" parent="Hud"]
+offset_left = 16.0
+offset_top = 48.0
+offset_right = 216.0
+offset_bottom = 68.0
+max_value = 100.0
+value = 100.0
+
+[node name="SleepBar" type="ProgressBar" parent="Hud"]
+offset_left = 16.0
+offset_top = 76.0
+offset_right = 216.0
+offset_bottom = 96.0
+max_value = 100.0
+value = 100.0

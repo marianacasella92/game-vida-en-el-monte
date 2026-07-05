@@ -22,6 +22,8 @@ func save_game() -> void:
 		"purchased_items": Economy.purchased_items,
 		"pieces": build_system.serialize_pieces() if build_system else [],
 		"crops": world.serialize_crops() if world and world.has_method("serialize_crops") else [],
+		"inventory": Inventory.get_save_data(),
+		"player_needs": PlayerNeeds.get_save_data(),
 	}
 	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	file.store_string(JSON.stringify(data))
@@ -38,6 +40,13 @@ func load_game() -> void:
 	Economy.money = data.get("money", 0)
 	Economy.purchased_items = data.get("purchased_items", {})
 	Economy.money_changed.emit(Economy.money)
+	# el "if data.has(...)" es para no pisar el inventario default (con la
+	# semilla inicial) si el archivo de guardado es viejo y todavía no tiene
+	# esta clave — si la tiene, se restaura tal cual (aunque esté vacía).
+	if data.has("inventory"):
+		Inventory.apply_save_data(data["inventory"])
+	if data.has("player_needs"):
+		PlayerNeeds.apply_save_data(data["player_needs"])
 
 	var build_system: Node = get_tree().get_first_node_in_group("build_system")
 	if build_system:

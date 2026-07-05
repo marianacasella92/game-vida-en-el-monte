@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://bvaduxarabbbt" path="res://scripts/player/arms.gd" id="1"]
 [ext_resource type="PackedScene" uid="uid://bekoafy3f7lcp" path="res://assets/character/first_person_hands_rigged.glb" id="2"]
+[ext_resource type="PackedScene" uid="uid://c1qph51t47ibm" path="res://assets/tools/watering_can.glb" id="3"]
 
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_arm"]
 radius = 0.08
@@ -32,6 +33,11 @@ mesh = SubResource("CapsuleMesh_arm")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.18, -0.2, -0.4)
 mesh = SubResource("BoxMesh_item")
 
+[node name="WateringCanVisual" parent="ArmsRoot/PlaceholderRoot" unique_id=497354817 instance=ExtResource("3")]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.18, -0.2, -0.4)
+visible = false
+
 [node name="RealModelRoot" type="Node3D" parent="ArmsRoot" unique_id=1298660378]
 
 [node name="ModelPivot" type="Node3D" parent="ArmsRoot/RealModelRoot" unique_id=1871221140]
@@ -50,5 +56,10 @@ bone_idx = 12
 unique_name_in_owner = true
 transform = Transform3D(0.001, 1.1920932e-10, 7.4505804e-11, -1.1920931e-10, 0.001, -1.5646222e-10, -7.4505825e-11, 1.564622e-10, 0.001, 1.4188467e-05, 0.00064073596, 0.0001569977)
 mesh = SubResource("BoxMesh_item")
+
+[node name="RealWateringCanVisual" parent="ArmsRoot/RealModelRoot/ModelPivot/RealArmsModel/Sketchfab_model/fps-hands_fbx/RootNode/basicRig/Object_4/Skeleton3D/ItemAttach" unique_id=1461927176 instance=ExtResource("3")]
+unique_name_in_owner = true
+transform = Transform3D(0.001, 0, 0, 0, 0.001, 0, 0, 0, 0.001, 0, 0, 0)
+visible = false
 
 [editable path="ArmsRoot/RealModelRoot/ModelPivot/RealArmsModel"]

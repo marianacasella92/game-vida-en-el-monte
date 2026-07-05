@@ -26,8 +26,9 @@ func _restore_plots_visuals() -> void:
 	for piece in get_tree().get_nodes_in_group("build_piece"):
 		if piece.has_meta("piece_category") and piece.get_meta("piece_category", "") == "garden":
 			var state: String = piece.get_meta("crop_state", "empty")
-			var started: float = float(piece.get_meta("crop_started_at", 0.0))
-			CropManager.restore_plot(piece, state, started)
+			var progress: float = float(piece.get_meta("crop_progress", 0.0))
+			var watered_until: float = float(piece.get_meta("watered_until", 0.0))
+			CropManager.restore_plot(piece, state, progress, watered_until)
 
 func _on_inventory_changed() -> void:
 	pass
@@ -88,14 +89,20 @@ func _process(delta: float) -> void:
 	# placed garden pieces are handled by CropManager singleton
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not event.is_action_pressed("interact"):
-		return
+	if event.is_action_pressed("interact"):
+		_handle_interact()
+	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		_handle_tool_use_click()
 
+## Tecla E: interactuar/agarrar. No depende de la herramienta equipada — sirve
+## para interactuables genéricos (ej. el escritorio) y para cosechar un
+## cultivo listo. Plantar/regar es acción de herramienta y va por click
+## izquierdo (_handle_tool_use_click), no acá.
+func _handle_interact() -> void:
 	print("[crop] interact pressed")
 	var target: Node = InteractionManager.get_from_ray(camera, 4.0)
 	if target:
 		print("[crop] ray hit interactable: %s" % target)
-		# if target implements interact(), call it
 		if target.has_method("interact"):
 			var player := get_tree().get_first_node_in_group("player")
 			var tool_id: String = player.current_tool_id if player else ""
@@ -109,8 +116,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		if collider and collider is Node:
 			var target2: Node = collider
 			if target2.has_meta("piece_category") and target2.get_meta("piece_category", "") == "garden":
-				print("[crop] hit garden piece directly: %s" % target2.name)
-				_interact_with_plot(target2)
+				print("[crop] hit garden piece directly: %s -> cosechar si está lista" % target2.name)
+				CropManager.harvest_plot(target2, Inventory)
 				return
 			if target2 is Area3D and target2.is_in_group("crop_slot"):
 				print("[crop] hit crop slot directly")
@@ -129,6 +136,31 @@ func _unhandled_input(event: InputEvent) -> void:
 
 	print("[crop] no slot reached")
 
+## Click izquierdo: usar la herramienta equipada (plantar semilla, regar,
+## comer) sobre la parcela apuntada o sobre una misma (comer no apunta a
+## nada). Si el sistema de construcción está usando el click (colocando o
+## destruyendo una pieza), no hace nada — ese click ya es suyo.
+func _handle_tool_use_click() -> void:
+	var build_system: Node = get_tree().get_first_node_in_group("build_system")
+	if build_system and build_system.equipped_category != "none":
+		return
+
+	var equipped_id: String = Inventory.get_selected_item().get("id", "")
+	if PlayerNeeds.try_eat(equipped_id):
+		Inventory.remove_item(Inventory.selected_slot)
+		print("[needs] comió %s, hambre=%.0f" % [equipped_id, PlayerNeeds.hunger])
+		return
+
+	var result := _cast_crop_ray()
+	if result.is_empty():
+		return
+	var collider: Object = result.get("collider")
+	if collider and collider is Node and collider.has_meta("piece_category") and collider.get_meta("piece_category", "") == "garden":
+		var player := get_tree().get_first_node_in_group("player")
+		var tool_id: String = player.current_tool_id if player else ""
+		print("[crop] click en %s con tool=%s" % [collider.name, tool_id])
+		CropManager.use_tool(collider, tool_id, Inventory)
+
 func _interact_with_slot(slot: Area3D) -> void:
 	var state: String = slot.get_meta("crop_state", "empty")
 	var player: Node = get_tree().get_first_node_in_group("player")
@@ -146,13 +178,6 @@ func _interact_with_slot(slot: Area3D) -> void:
 		print("[crop] need seed")
 	else:
 		print("[crop] still growing")
-
-func _interact_with_plot(plot: Node) -> void:
-	# delegate planting/harvesting to CropManager singleton
-	var player: Node = get_tree().get_first_node_in_group("player")
-	var tool_id: String = player.current_tool_id if player else ""
-	print("[crop] plot %s state=%s tool=%s" % [plot.name, plot.get_meta("crop_state", "empty"), tool_id])
-	CropManager.interact(plot, tool_id, Inventory)
 
 func _cast_crop_ray() -> Dictionary:
 	var space_state := get_world_3d().direct_space_state
