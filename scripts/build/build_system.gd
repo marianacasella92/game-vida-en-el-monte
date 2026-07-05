@@ -213,6 +213,11 @@ func _spawn_ghost() -> void:
 
 	ghost = _piece_scene(equipped_category, equipped_variant).instantiate()
 	add_child(ghost)
+	# el fantasma es un preview, no una pieza real puesta en el mundo — sacarlo
+	# del grupo "build_piece" para que serialize_pieces()/CropManager/etc. no
+	# lo confundan con algo colocado de verdad mientras sigue el mouse.
+	if ghost.is_in_group("build_piece"):
+		ghost.remove_from_group("build_piece")
 
 	ghost_meshes = _find_mesh_instances(ghost)
 	for mesh in ghost_meshes:
@@ -235,6 +240,7 @@ func _place_piece() -> void:
 	get_tree().current_scene.add_child(piece)
 	piece.global_position = ghost.global_position
 	piece.global_rotation = ghost.global_rotation
+	print("[build] colocada %s/%s en %s — en grupo build_piece=%s" % [equipped_category, equipped_variant, piece.global_position, piece.is_in_group("build_piece")])
 
 	if equipped_category == "floor":
 		floor_cells[_cell_key(piece.global_position.x, piece.global_position.z)] = true
@@ -290,8 +296,8 @@ func serialize_pieces() -> Array:
 	var result: Array = []
 	for piece in get_tree().get_nodes_in_group("build_piece"):
 		var entry := {
-			"category": piece.get_meta("piece_category"),
-			"id": piece.get_meta("piece_id"),
+			"category": piece.get_meta("piece_category", ""),
+			"id": piece.get_meta("piece_id", ""),
 			"position": [piece.global_position.x, piece.global_position.y, piece.global_position.z],
 			"rotation": [piece.global_rotation.x, piece.global_rotation.y, piece.global_rotation.z],
 		}

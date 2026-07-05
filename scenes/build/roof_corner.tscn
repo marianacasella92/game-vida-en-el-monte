@@ -5,8 +5,7 @@
 [sub_resource type="BoxShape3D" id="BoxShape3D_1"]
 size = Vector3(1.16, 0.27, 1.16)
 
-[node name="RoofCorner" type="StaticBody3D"]
-groups=["build_piece"]
+[node name="RoofCorner" type="StaticBody3D" groups=["build_piece"]]
 metadata/piece_category = "roof"
 metadata/piece_id = "corner"
 

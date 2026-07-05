@@ -26,7 +26,30 @@ func save_game() -> void:
 		"player_needs": PlayerNeeds.get_save_data(),
 	}
 	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	if not file:
+		push_error("[save] no se pudo abrir %s para escribir (error=%d) — la partida NO se guardó" % [SAVE_PATH, FileAccess.get_open_error()])
+		return
 	file.store_string(JSON.stringify(data))
+	_print_save_summary(data)
+
+## Lista en detalle qué se guardó, desglosando "pieces" por categoría —
+## para poder ver de un vistazo si algo colocado en el mundo no llegó a
+## contarse (ej. el bug de los pisos que no se guardaban).
+func _print_save_summary(data: Dictionary) -> void:
+	var pieces: Array = data["pieces"]
+	var by_category: Dictionary = {}
+	for entry in pieces:
+		var category: String = entry.get("category", "?")
+		by_category[category] = by_category.get(category, 0) + 1
+
+	print("[save] ---- partida guardada ----")
+	print("[save] money=%d" % data["money"])
+	print("[save] purchased_items=%s" % [data["purchased_items"].keys()])
+	print("[save] inventory items=%s selected_slot=%s" % [data["inventory"]["items"], data["inventory"]["selected_slot"]])
+	print("[save] player_needs=%s" % [data["player_needs"]])
+	print("[save] crops guardados=%d" % data["crops"].size())
+	print("[save] pieces guardadas=%d -> %s" % [pieces.size(), by_category])
+	print("[save] ------------------------------")
 
 func load_game() -> void:
 	if not FileAccess.file_exists(SAVE_PATH):

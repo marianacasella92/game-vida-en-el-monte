@@ -6,9 +6,8 @@
 [sub_resource type="BoxShape3D" id="BoxShape3D_1"]
 size = Vector3(2, 1, 1)
 
-[node name="Desk" type="StaticBody3D"]
+[node name="Desk" type="StaticBody3D" groups=["build_piece"]]
 script = ExtResource("2")
-groups=["build_piece"]
 metadata/piece_category = "desk"
 metadata/piece_id = "plain"
 
