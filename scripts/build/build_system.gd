@@ -70,6 +70,7 @@ const CATALOG := {
 @onready var work_system: Node = get_node("../WorkSystem")
 @onready var phone_system: Node = get_node("../PhoneSystem")
 @onready var inventory_system: Node = get_node("../InventorySystem")
+@onready var pause_system: Node = get_node("../PauseSystem")
 
 var equipped_category: String = "none"
 var equipped_variant: String = ""
@@ -125,8 +126,15 @@ func _menu_catalog() -> Dictionary:
 func _piece_scene(category: String, variant: String) -> PackedScene:
 	return CATALOG[category]["variants"][variant]["scene"]
 
+## "En modo construcción" no es solo "catálogo abierto" (menu_open): también
+## cuenta tener una pieza equipada con el catálogo ya cerrado (fantasma en
+## mano). pause_system.gd lo necesita para no abrirse en el mismo Escape que
+## ya usó _unhandled_input acá abajo para sacar la pieza de la mano.
+func is_active() -> bool:
+	return menu_open or equipped_category != "none"
+
 func _unhandled_input(event: InputEvent) -> void:
-	if work_system.is_working or phone_system.is_open or inventory_system.is_open:
+	if work_system.is_working or phone_system.is_open or inventory_system.is_open or pause_system.is_open:
 		return
 	if event.is_action_pressed("ui_cancel"):
 		if menu_open:
@@ -399,7 +407,7 @@ func _snap_wall(point: Vector3) -> Dictionary:
 		return {"position": Vector3(edge_x, y, edge_z), "rotation": rot}
 
 func _process(_delta: float) -> void:
-	if menu_open or work_system.is_working or phone_system.is_open or inventory_system.is_open:
+	if menu_open or work_system.is_working or phone_system.is_open or inventory_system.is_open or pause_system.is_open:
 		return
 
 	if equipped_category == "demolish":

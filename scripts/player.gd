@@ -12,6 +12,7 @@ extends CharacterBody3D
 @onready var work_system: Node = $WorkSystem
 @onready var phone_system: Node = $PhoneSystem
 @onready var inventory_system: Node = $InventorySystem
+@onready var pause_system: Node = $PauseSystem
 @onready var arms: Node = $Head/Camera3D/Arms
 
 var current_tool_id: String = ""
@@ -32,7 +33,7 @@ func _on_inventory_changed() -> void:
 		arms.update_from_inventory()
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED and not build_system.menu_open and not work_system.is_working and not phone_system.is_open and not inventory_system.is_open:
+	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED and not build_system.menu_open and not work_system.is_working and not phone_system.is_open and not inventory_system.is_open and not pause_system.is_open:
 		rotate_y(-event.relative.x * mouse_sensitivity)
 		head.rotate_x(-event.relative.y * mouse_sensitivity)
 		head.rotation.x = clamp(head.rotation.x, deg_to_rad(min_pitch_deg), deg_to_rad(max_pitch_deg))
@@ -52,7 +53,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			break
 
 func _physics_process(delta: float) -> void:
-	if work_system.is_working or phone_system.is_open or inventory_system.is_open:
+	if work_system.is_working or phone_system.is_open or inventory_system.is_open or pause_system.is_open:
 		return
 
 	if not is_on_floor():

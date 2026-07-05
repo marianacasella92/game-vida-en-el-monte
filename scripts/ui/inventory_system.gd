@@ -11,6 +11,7 @@ var is_open: bool = false
 @onready var work_system: Node = get_node("../WorkSystem")
 @onready var build_system: Node = get_node("../BuildSystem")
 @onready var phone_system: Node = get_node("../PhoneSystem")
+@onready var pause_system: Node = get_node("../PauseSystem")
 @onready var panel: Control = $InventoryUILayer/Panel
 
 func _ready() -> void:
@@ -20,7 +21,7 @@ func _ready() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if not event.is_action_pressed("open_inventory"):
 		return
-	if work_system.is_working or build_system.menu_open or phone_system.is_open:
+	if work_system.is_working or build_system.menu_open or phone_system.is_open or pause_system.is_open:
 		return
 	if is_open:
 		close_inventory()

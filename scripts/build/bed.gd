@@ -39,5 +39,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		var inventory_system := get_tree().get_first_node_in_group("inventory_system")
 		if inventory_system and inventory_system.is_open:
 			return
+		var pause_system := get_tree().get_first_node_in_group("pause_system")
+		if pause_system and pause_system.is_open:
+			return
 		PlayerNeeds.sleep_now()
 		print("[needs] durmió, sueño=%.0f" % PlayerNeeds.sleep)

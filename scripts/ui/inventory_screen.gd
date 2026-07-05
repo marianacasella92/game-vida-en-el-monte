@@ -4,11 +4,12 @@ extends Control
 ## código en _ready(), mismo estilo que marketplace_ui.gd/catalog_menu.gd, en
 ## vez de armar el layout a mano en el editor.
 ##
-## Muestra dos almacenes separados lado a lado: la grilla de mochila
-## (Backpack, 5x6) a la izquierda y la lista vertical de hotbar (Hotbar,
-## tamaño dinámico, con ícono de tecla 1-9 por fila) a la derecha. Arrastrar
-## un ítem entre ambos mueve/intercambia entre Backpack.items y Hotbar.items
-## vía move_item().
+## Muestra dos almacenes separados, en una única fila centrada verticalmente
+## en la pantalla (ver "outer" en _ready()): la grilla de mochila (Backpack,
+## 5x6) a la izquierda, y una fila horizontal chica de hotbar (Hotbar,
+## tamaño dinámico, ícono de tecla 1-9 arriba de cada slot) empujada al
+## borde derecho. Arrastrar un ítem entre ambos mueve/intercambia entre
+## Backpack.items y Hotbar.items vía move_item().
 
 const FRAME_EMPTY := preload("res://assets/hud/inv_slot_frame_empty.png")
 const FRAME_OCCUPIED := preload("res://assets/hud/inv_slot_frame_occupied.png")
@@ -38,13 +39,23 @@ const KEY_ICONS := [
 	preload("res://assets/hud/keyset/White/9.png"),
 ]
 
-const SLOT_SIZE := Vector2(80, 80)
-const KEY_ICON_SIZE := Vector2(28, 28)
+const ESC_ICON := preload("res://assets/hud/keyset/White/esc.png")
+
+const SLOT_SIZE := Vector2(72, 72)
+const HOTBAR_SLOT_SIZE := Vector2(56, 56)
+const KEY_ICON_SIZE := Vector2(24, 24)
 const GRID_COLUMNS := 5
+
+## Alto (en px) del bloque título+línea+label de la mochila (header ~34 +
+## separación 20 + línea divisoria 11 + separación 20 + label "Mochila" ~20 +
+## separación 20 ≈ 125) — se usa como relleno arriba del hotbar para que
+## arranque a la misma altura que la grilla, ya que ambos viven ahora en la
+## misma fila (ver _ready(): "outer").
+const HOTBAR_TOP_OFFSET := 125.0
 
 var money_label: Label
 var backpack_grid: GridContainer
-var hotbar_list: VBoxContainer
+var hotbar_list: HBoxContainer
 var _backpack_slots: Array[InventorySlot] = []
 var _hotbar_slots: Array[InventorySlot] = []
 
@@ -59,16 +70,42 @@ func _ready() -> void:
 	bg.material = blur_material
 	add_child(bg)
 
+	# Todo el contenido (mochila + hotbar) vive en una única fila ("outer"),
+	# centrada verticalmente como bloque en la pantalla completa: anclada al
+	# 50% vertical con grow_vertical=BOTH, que hace que Godot calcule su alto
+	# real a partir del contenido y la centre sola, creciendo para los dos
+	# lados por igual. Así mochila y hotbar quedan siempre alineadas entre sí
+	# (comparten el mismo "arriba" de fila) sin sincronizar a mano dos
+	# bloques anclados por separado como antes.
+	var outer := HBoxContainer.new()
+	outer.anchor_left = 0.0
+	outer.anchor_right = 1.0
+	outer.anchor_top = 0.5
+	outer.anchor_bottom = 0.5
+	outer.grow_vertical = Control.GROW_DIRECTION_BOTH
+	add_child(outer)
+
+	# Columna de la mochila: se expande para absorber todo el espacio
+	# sobrante entre su contenido (angosto) y la columna del hotbar (a la
+	# derecha) — ese sobrante es precisamente el "aire" del medio de la
+	# pantalla, sin necesidad de fijarle un ancho de mitad de pantalla.
+	#
+	# Va directo como MarginContainer (no como Control envolviendo un
+	# MarginContainer anclado adentro): un Control común no reporta el
+	# tamaño mínimo de sus hijos hacia arriba, y sin eso "outer" no puede
+	# calcular cuánto mide realmente la mochila para centrar el bloque
+	# entero — terminaba centrando una caja mucho más chica que el
+	# contenido real, que se desbordaba por abajo sin avisar.
 	var margin := MarginContainer.new()
-	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
-	margin.add_theme_constant_override("margin_left", 40)
-	margin.add_theme_constant_override("margin_top", 30)
-	margin.add_theme_constant_override("margin_right", 40)
-	margin.add_theme_constant_override("margin_bottom", 30)
-	add_child(margin)
+	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	margin.add_theme_constant_override("margin_left", 140)
+	margin.add_theme_constant_override("margin_top", 0)
+	margin.add_theme_constant_override("margin_right", 0)
+	margin.add_theme_constant_override("margin_bottom", 0)
+	outer.add_child(margin)
 
 	var vbox := VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 12)
+	vbox.add_theme_constant_override("separation", 20)
 	margin.add_child(vbox)
 
 	var header := HBoxContainer.new()
@@ -89,65 +126,105 @@ func _ready() -> void:
 	money_icon.texture = MONEY_ICON
 	money_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	money_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	money_icon.custom_minimum_size = Vector2(32, 32)
+	money_icon.custom_minimum_size = Vector2(28, 28)
 	header.add_child(money_icon)
 
 	money_label = Label.new()
 	money_label.add_theme_font_override("font", FONT_TITLE)
-	money_label.add_theme_font_size_override("font_size", 22)
+	money_label.add_theme_font_size_override("font_size", 20)
 	money_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	header.add_child(money_label)
 
+	# La línea se repite (tile) en vez de estirarse: es un trazo hecho a
+	# mano, estirarlo la deforma.
 	var divider_top := TextureRect.new()
 	divider_top.texture = DIVIDER_TOP
-	divider_top.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	divider_top.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	divider_top.stretch_mode = TextureRect.STRETCH_TILE
 	divider_top.custom_minimum_size = Vector2(0, 11)
+	divider_top.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	vbox.add_child(divider_top)
-
-	var content_row := HBoxContainer.new()
-	content_row.add_theme_constant_override("separation", 32)
-	vbox.add_child(content_row)
-
-	var backpack_section := VBoxContainer.new()
-	backpack_section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	content_row.add_child(backpack_section)
 
 	var backpack_label := Label.new()
 	backpack_label.text = "Mochila"
 	backpack_label.add_theme_font_override("font", FONT_BODY)
-	backpack_section.add_child(backpack_label)
+	backpack_label.add_theme_color_override("font_color", Color(1, 1, 1, 0.9))
+	vbox.add_child(backpack_label)
 
 	backpack_grid = GridContainer.new()
 	backpack_grid.columns = GRID_COLUMNS
-	backpack_grid.add_theme_constant_override("h_separation", 6)
-	backpack_grid.add_theme_constant_override("v_separation", 6)
-	backpack_section.add_child(backpack_grid)
+	backpack_grid.add_theme_constant_override("h_separation", 14)
+	backpack_grid.add_theme_constant_override("v_separation", 14)
+	vbox.add_child(backpack_grid)
 	for slot in range(Backpack.SLOT_COUNT):
 		_backpack_slots.append(_make_slot(InventorySlot.Store.BACKPACK, slot, backpack_grid))
 
-	# Fila de hotbar a la derecha de la mochila, en lista vertical: cada fila
-	# muestra el ícono de la tecla (1-9, assets/hud/keyset) junto al slot.
+	# La línea de abajo (ya trae el isotipo del juego) no se estira ni se
+	# repite: se muestra una sola vez a su tamaño real, pegada a la
+	# izquierda. size_flags_horizontal = SHRINK_BEGIN es necesario acá: sin
+	# eso, el VBoxContainer la estira igual al ancho completo de la columna
+	# (comportamiento default de todo hijo de un contenedor) y stretch_mode
+	# default (STRETCH_SCALE) la deforma para llenar ese ancho.
+	var divider_bottom := TextureRect.new()
+	divider_bottom.texture = DIVIDER_BOTTOM
+	divider_bottom.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	vbox.add_child(divider_bottom)
+
+	# Hotbar: columna angosta al final de la misma fila "outer", empujada a
+	# la derecha por el expand-fill de la columna de la mochila. margin_right le da aire
+	# contra el borde derecho de la pantalla.
+	var right_margin := MarginContainer.new()
+	right_margin.add_theme_constant_override("margin_right", 120)
+	outer.add_child(right_margin)
+
 	var hotbar_section := VBoxContainer.new()
-	content_row.add_child(hotbar_section)
+	hotbar_section.add_theme_constant_override("separation", 6)
+	right_margin.add_child(hotbar_section)
+
+	# Relleno para que la fila del hotbar arranque a la misma altura que la
+	# grilla de la mochila (después de su título+línea+label), ya que ambas
+	# columnas comparten el mismo punto de partida vertical en "outer".
+	var hotbar_top_spacer := Control.new()
+	hotbar_top_spacer.custom_minimum_size = Vector2(0, HOTBAR_TOP_OFFSET)
+	hotbar_section.add_child(hotbar_top_spacer)
 
 	var hotbar_label := Label.new()
 	hotbar_label.text = "Accesos rápidos"
 	hotbar_label.add_theme_font_override("font", FONT_BODY)
 	hotbar_section.add_child(hotbar_label)
 
-	hotbar_list = VBoxContainer.new()
-	hotbar_list.add_theme_constant_override("separation", 6)
+	hotbar_list = HBoxContainer.new()
+	hotbar_list.add_theme_constant_override("separation", 10)
 	hotbar_section.add_child(hotbar_list)
 	for slot in range(Hotbar.SLOT_COUNT):
-		_hotbar_slots.append(_make_hotbar_row(slot, hotbar_list))
+		_hotbar_slots.append(_make_hotbar_slot(slot, hotbar_list))
 
-	var divider_bottom := TextureRect.new()
-	divider_bottom.texture = DIVIDER_BOTTOM
-	divider_bottom.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	divider_bottom.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	divider_bottom.custom_minimum_size = Vector2(0, 33)
-	vbox.add_child(divider_bottom)
+	# Recordatorio de cómo cerrar, abajo a la derecha — anclado por la
+	# esquina (grow_horizontal/vertical = BEGIN) para que crezca hacia
+	# adentro de la pantalla según el tamaño real del ícono + texto, en vez
+	# de tener que adivinarle un ancho fijo.
+	var esc_hint := HBoxContainer.new()
+	esc_hint.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	esc_hint.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	esc_hint.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	esc_hint.offset_left = -72
+	esc_hint.offset_right = -72
+	esc_hint.offset_top = -48
+	esc_hint.offset_bottom = -48
+	esc_hint.add_theme_constant_override("separation", 8)
+	add_child(esc_hint)
+
+	var esc_icon := TextureRect.new()
+	esc_icon.texture = ESC_ICON
+	esc_icon.custom_minimum_size = Vector2(28, 28)
+	esc_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	esc_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	esc_hint.add_child(esc_icon)
+
+	var esc_label := Label.new()
+	esc_label.text = "Volver"
+	esc_label.add_theme_font_override("font", FONT_BODY)
+	esc_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	esc_hint.add_child(esc_label)
 
 	Economy.money_changed.connect(_on_money_changed)
 	Backpack.backpack_changed.connect(refresh)
@@ -189,22 +266,29 @@ func _make_slot(store: InventorySlot.Store, slot_index: int, parent: Container) 
 
 	return slot
 
-## Una fila del hotbar: ícono de tecla (1-9) + slot, para la columna derecha
-## de la pantalla. slot_index es 0-based; KEY_ICONS ya está indexado igual.
-func _make_hotbar_row(slot_index: int, parent: Container) -> InventorySlot:
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 8)
-	parent.add_child(row)
+## Una columna del hotbar (ícono de tecla arriba, slot chico abajo) para la
+## fila horizontal de la esquina inferior derecha. slot_index es 0-based;
+## KEY_ICONS ya está indexado igual. Los slots son más chicos que los de la
+## mochila (HOTBAR_SLOT_SIZE) para que no compitan en tamaño con ella.
+func _make_hotbar_slot(slot_index: int, parent: Container) -> InventorySlot:
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 4)
+	column.alignment = BoxContainer.ALIGNMENT_CENTER
+	parent.add_child(column)
 
 	var key_icon := TextureRect.new()
 	key_icon.custom_minimum_size = KEY_ICON_SIZE
 	key_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	key_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	key_icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	if slot_index < KEY_ICONS.size():
 		key_icon.texture = KEY_ICONS[slot_index]
-	row.add_child(key_icon)
+	column.add_child(key_icon)
 
-	return _make_slot(InventorySlot.Store.HOTBAR, slot_index, row)
+	var slot := _make_slot(InventorySlot.Store.HOTBAR, slot_index, column)
+	slot.custom_minimum_size = HOTBAR_SLOT_SIZE
+	slot.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	return slot
 
 func refresh() -> void:
 	money_label.text = "%d" % Economy.money
