@@ -11,8 +11,8 @@ const FILL_TEXTURE := preload("res://assets/hud/bar_fill.png")
 
 @onready var root: Control = $Root
 @onready var health_icon: TextureRect = $Root/HealthIcon
-@onready var hunger_bar: TextureProgressBar = $Root/HungerRow/HungerBar
-@onready var energy_bar: TextureProgressBar = $Root/EnergyRow/EnergyBar
+@onready var hunger_bar: TextureProgressBar = $Root/StatsColumn/HungerRow/HungerBar
+@onready var energy_bar: TextureProgressBar = $Root/StatsColumn/EnergyRow/EnergyBar
 
 @onready var build_system: Node = get_tree().get_first_node_in_group("build_system")
 @onready var work_system: Node = get_tree().get_first_node_in_group("work_system")
