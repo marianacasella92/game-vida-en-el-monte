@@ -4,10 +4,13 @@ extends Node3D
 @export var grid_size: float = 2.0
 @export var wall_height: float = 3.0
 
-## category_id -> {"label": String, "variants": {variant_id -> {"label": String, "scene": PackedScene}}}
+## category_id -> {"label": String, "variants": {variant_id -> {"label": String, "scene": PackedScene, "requires_item": String opcional}}}
 ## La categoría define CÓMO se posiciona la pieza (ver _process); la variante
 ## solo define QUÉ escena se instancia. Agregar una puerta, una ventana o una
 ## esquina nueva es sumar una entrada acá, sin tocar la lógica de snap.
+## "requires_item" (opcional) es el id de Economy.purchased_items que hace
+## falta tener comprado en el marketplace para que la variante aparezca en el
+## catálogo (ver _menu_catalog).
 const CATALOG := {
 	"wall": {
 		"label": "Pared",
@@ -41,12 +44,19 @@ const CATALOG := {
 			"plain": {"label": "Escritorio", "scene": preload("res://scenes/build/desk.tscn")},
 		},
 	},
+	"decor": {
+		"label": "Decoración",
+		"variants": {
+			"crate": {"label": "Cajón de madera", "scene": preload("res://scenes/build/decor_crate.tscn"), "requires_item": "crate"},
+		},
+	},
 }
 
 @onready var camera: Camera3D = get_node("../Head/Camera3D")
 @onready var player: CharacterBody3D = get_parent()
 @onready var catalog_menu: Control = $BuildMenuLayer/Catalog
 @onready var work_system: Node = get_node("../WorkSystem")
+@onready var phone_system: Node = get_node("../PhoneSystem")
 
 var equipped_category: String = "none"
 var equipped_variant: String = ""
@@ -63,6 +73,8 @@ var valid_material := StandardMaterial3D.new()
 var invalid_material := StandardMaterial3D.new()
 
 func _ready() -> void:
+	add_to_group("build_system")
+
 	valid_material.albedo_color = Color(0.2, 1.0, 0.2, 0.5)
 	valid_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	valid_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
@@ -81,7 +93,13 @@ func _menu_catalog() -> Dictionary:
 	for category_id in CATALOG:
 		var variants: Dictionary = {}
 		for variant_id in CATALOG[category_id]["variants"]:
-			variants[variant_id] = CATALOG[category_id]["variants"][variant_id]["label"]
+			var variant: Dictionary = CATALOG[category_id]["variants"][variant_id]
+			var requires_item: String = variant.get("requires_item", "")
+			if requires_item != "" and not Economy.purchased_items.has(requires_item):
+				continue
+			variants[variant_id] = variant["label"]
+		if variants.is_empty():
+			continue
 		menu[category_id] = {"label": CATALOG[category_id]["label"], "variants": variants}
 	return menu
 
@@ -89,7 +107,7 @@ func _piece_scene(category: String, variant: String) -> PackedScene:
 	return CATALOG[category]["variants"][variant]["scene"]
 
 func _unhandled_input(event: InputEvent) -> void:
-	if work_system.is_working:
+	if work_system.is_working or phone_system.is_open:
 		return
 	if event.is_action_pressed("build_menu"):
 		if menu_open:
@@ -101,7 +119,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("build_flip"):
 		manual_flip = not manual_flip
 	elif event.is_action_pressed("build_rotate"):
-		if equipped_category == "roof" or equipped_category == "desk":
+		if equipped_category == "roof" or equipped_category == "desk" or equipped_category == "decor":
 			rotation_steps = (rotation_steps + 1) % 4
 	elif event is InputEventMouseButton and event.pressed:
 		if event.button_index == MOUSE_BUTTON_LEFT:
@@ -111,6 +129,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _open_catalog() -> void:
 	menu_open = true
+	catalog_menu.setup(_menu_catalog())
 	if ghost:
 		ghost.visible = false
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
@@ -189,6 +208,38 @@ func _remove_piece() -> void:
 			floor_cells.erase(_cell_key(collider.global_position.x, collider.global_position.z))
 		collider.queue_free()
 
+## Usado por SaveManager (autoload/save_manager.gd) para persistir lo construido.
+func serialize_pieces() -> Array:
+	var result: Array = []
+	for piece in get_tree().get_nodes_in_group("build_piece"):
+		result.append({
+			"category": piece.get_meta("piece_category"),
+			"id": piece.get_meta("piece_id"),
+			"position": [piece.global_position.x, piece.global_position.y, piece.global_position.z],
+			"rotation": [piece.global_rotation.x, piece.global_rotation.y, piece.global_rotation.z],
+		})
+	return result
+
+func clear_pieces() -> void:
+	for piece in get_tree().get_nodes_in_group("build_piece"):
+		piece.queue_free()
+	floor_cells.clear()
+
+func load_pieces(data: Array) -> void:
+	for entry in data:
+		var category: String = entry["category"]
+		var variant: String = entry["id"]
+		var piece: StaticBody3D = _piece_scene(category, variant).instantiate()
+		get_tree().current_scene.add_child(piece)
+
+		var pos: Array = entry["position"]
+		var rot: Array = entry["rotation"]
+		piece.global_position = Vector3(pos[0], pos[1], pos[2])
+		piece.global_rotation = Vector3(rot[0], rot[1], rot[2])
+
+		if category == "floor":
+			floor_cells[_cell_key(piece.global_position.x, piece.global_position.z)] = true
+
 func _build_ray_target() -> Vector3:
 	return camera.global_position + camera.global_transform.basis * Vector3(0, 0, -build_range)
 
@@ -248,7 +299,7 @@ func _snap_wall(point: Vector3) -> Dictionary:
 		return {"position": Vector3(edge_x, y, edge_z), "rotation": rot}
 
 func _process(_delta: float) -> void:
-	if menu_open or not ghost or work_system.is_working:
+	if menu_open or not ghost or work_system.is_working or phone_system.is_open:
 		return
 
 	var result := _cast_build_ray()
@@ -265,7 +316,7 @@ func _process(_delta: float) -> void:
 	elif equipped_category == "roof":
 		snapped = _snap_roof(target_point)
 		rot_y = rotation_steps * (PI / 2.0)
-	elif equipped_category == "desk":
+	elif equipped_category == "desk" or equipped_category == "decor":
 		snapped = _snap_flat(target_point)
 		rot_y = rotation_steps * (PI / 2.0)
 	else:

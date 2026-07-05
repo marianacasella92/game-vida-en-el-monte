@@ -32,6 +32,9 @@ func _on_body_exited(body: Node3D) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if _player and event.is_action_pressed("interact"):
+		var phone_system := get_tree().get_first_node_in_group("phone_system")
+		if phone_system and phone_system.is_open:
+			return
 		var work_system := get_tree().get_first_node_in_group("work_system")
 		if work_system:
 			work_system.start_working(self)

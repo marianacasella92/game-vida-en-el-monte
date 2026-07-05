@@ -55,11 +55,16 @@ Diseño del primer ítem en [docs/design/milestone2_escritorio.md](docs/design/m
 - [ ] Agregar un mini-tutorial antes de la primera clase, que se pueda omitir y no se vuelva a mostrar (checkbox "No mostrar de nuevo").
 
 ## Milestone 3 — Marketplace mínimo
-- [ ] Sistema de economía global (dinero accesible desde todo el juego)
-- [ ] UI de marketplace con 2-3 ítems (precio + descripción corta)
-- [ ] Comprar ítem → resta dinero, lo deja disponible para construir
-- [ ] HUD simple: plata actual visible en pantalla
-- [ ] Conectar ítems comprados con el sistema de construcción (Milestone 1)
+- [x] Sistema de economía global (dinero accesible desde todo el juego) — `autoload/economy.gd`, ahora con `spend_money`/`purchase_item` además de `add_money`
+- [x] Celular como punto de acceso al marketplace, según GDD 4.10 — implementado como **tecla siempre disponible** (`open_phone`, tecla `P`) en vez de un objeto físico con proximidad, ya que "lo lleva siempre encima" (`scripts/phone/phone_system.gd`)
+- [x] UI de marketplace con 4 ítems (precio + descripción corta) — `scripts/phone/marketplace_ui.gd`; 3 son placeholders genéricos (semillas/herramienta/adorno) y 1 ("Cajón de madera") está conectado a construcción, ver ítem siguiente
+- [x] Comprar ítem → resta dinero y lo marca como comprado
+- [x] HUD simple: plata actual visible en pantalla — `scripts/ui/hud.gd`
+- [x] Conectar ítems comprados con el sistema de construcción (Milestone 1) — comprar "Cajón de madera" en el marketplace desbloquea la variante `decor`/`crate` (`scenes/build/decor_crate.tscn`) en el catálogo de construcción (`CATALOG` de `build_system.gd`, campo `requires_item`); el resto de los ítems placeholder sigue sin conexión
+- [x] Sistema de guardado básico: guardado manual (botón "Guardar partida" en el celular) + autoguardado periódico cada 5 minutos reales como placeholder (`autoload/save_manager.gd`), hasta reemplazarlo por el trigger real ("dormir") cuando exista el ciclo día/noche — guarda plata, ítems comprados y piezas construidas
+
+**Diseño pendiente (todavía sin tareas concretas):**
+- Personalización del personaje (GDD 4.10) — falta definir profundidad (cambio de rasgos básicos vs. sistema completo) y qué assets/sistema técnico hace falta antes de poder desglosarlo en tareas.
 
 ## Assets (transversal, en paralelo a todo lo anterior)
 - [x] Elegir pack(s) de assets low-poly (Quaternius) y descargar — `assets/building`, `farm`, `food`, `house_interior`, `nature`, `survival`
