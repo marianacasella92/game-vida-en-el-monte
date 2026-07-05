@@ -16,6 +16,7 @@ var _saved_transform: Transform3D
 var _saved_head_pitch: float = 0.0
 
 func _ready() -> void:
+	add_to_group("work_system")
 	work_panel.visible = false
 
 func start_working(desk: Node3D) -> void:

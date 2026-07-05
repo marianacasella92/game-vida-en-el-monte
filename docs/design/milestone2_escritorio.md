@@ -17,8 +17,8 @@ Diseño cerrado para el primer ítem de Milestone 2 (ver [GDD](../GDD_Vida_en_el
 ## Detección de proximidad y prompt
 - `desk.tscn` incluye un `Area3D` (`InteractionArea`) con una esfera de radio **2.5m** (creada en código en `desk.gd`, vía `@export var interaction_range`, no hardcodeada en la escena — mismo estilo que `build_range`/`grid_size` en `BuildSystem`).
 - Al entrar la jugadora al área, se muestra un `Label3D` con el texto **"Presioná E"** (billboard, siempre mirando a cámara); al salir, se oculta.
-- Para distinguir a la jugadora de otras piezas construidas que puedan solaparse con el área (paredes, pisos), el nodo `Player` se sumó al grupo `"player"`, y `desk.gd` sólo reacciona si el body que entra/sale pertenece a ese grupo.
-- Se agregó la acción de input `interact` (tecla `E`, físico 69) en `project.godot`, pero **todavía no dispara ninguna lógica** — eso es el próximo ítem de Milestone 2 ("Estado 'trabajando'"), que va a consumir esta misma tecla para efectivamente sentarse a trabajar.
+- Para distinguir a la jugadora de otras piezas construidas que puedan solaparse con el área (paredes, pisos), el nodo `Player` está en el grupo `"player"` (ver bug de grupos más abajo), y `desk.gd` sólo reacciona si el body que entra/sale pertenece a ese grupo.
+- Se agregó la acción de input `interact` (tecla `E`, físico 69) en `project.godot`.
 
 ## Ítem 2 — Estado "trabajando"
 
@@ -32,6 +32,15 @@ Diseño cerrado para el primer ítem de Milestone 2 (ver [GDD](../GDD_Vida_en_el
 - **Grupo `"work_system"`:** se agregó para que `desk.gd` (que vive en el mundo, no es hijo del jugador) pueda encontrarlo con `get_tree().get_first_node_in_group(...)`, igual que ya hacía con el grupo `"player"`.
 
 **Edge case conocido, no resuelto:** si la jugadora abre el catálogo de construcción (`G`) y en ese estado presiona `E` cerca de un escritorio, se podría entrar a "trabajando" con el catálogo todavía abierto de fondo (UIs superpuestas). Es un caso raro y no rompe nada (se sale con Escape), así que se dejó sin guardia explícita por ahora.
+
+## Bugs encontrados al probar en el editor (resueltos)
+
+- **El cartel "Presioná E" nunca aparecía, aunque la detección de físicas funcionaba bien.** Se debuggeó agregando `print()` temporales en `desk.gd` (sacados después): `Area3D.body_entered` sí disparaba y detectaba correctamente al nodo `Player` por nombre, pero `body.is_in_group("player")` daba `false` — el grupo `"player"` simplemente no estaba en la lista de grupos del nodo en tiempo de ejecución, pese a estar declarado como `groups=["player"]` en `player.tscn`.
+  - **Causa probable:** `player.tscn` no se usa solo/suelto — está instanciado *dentro de* `world.tscn` (`instance=ExtResource(...)`). Los grupos declarados en el `.tscn` de una escena que vive anidada así, en este proyecto, no se propagaron al nodo real en runtime (no se confirmó el motivo exacto a nivel de Godot, pero el patrón se repitió idéntico para dos nodos distintos, ver abajo).
+  - **Arreglo:** en vez de depender de la propiedad `groups=[...]` del `.tscn`, se agregó `add_to_group("player")` directo en el código, en `_ready()` de `player.gd`.
+- **El teletransporte al presionar `E` tampoco funcionaba**, incluso después de arreglar el cartel. Mismo patrón exacto: `WorkSystem` (nodo hijo de `Player`, también anidado dentro de la escena instanciada) declaraba `groups=["work_system"]` en `player.tscn`, y `desk.gd` lo busca con `get_tree().get_first_node_in_group("work_system")` — como el grupo tampoco se propagaba, la búsqueda no encontraba nada y `start_working()` nunca se llamaba.
+  - **Arreglo:** mismo enfoque, `add_to_group("work_system")` en `_ready()` de `work_system.gd`.
+- **Lección general:** para nodos que viven pre-colocados dentro de otra escena (como `Player` y sus hijos dentro de `world.tscn`), declarar grupos por código (`add_to_group()` en `_ready()`) en vez de confiar en la propiedad `groups=[...]` del `.tscn`. Para piezas que se instancian dinámicamente por código en runtime (paredes, techos, el propio escritorio), la declaración en el `.tscn` sí es confiable.
 
 ## Fuera de alcance de este ítem (queda para los próximos ítems de Milestone 2)
 - Cualquier mini-juego o lógica real de "trabajar" (la UI de este ítem es placeholder).

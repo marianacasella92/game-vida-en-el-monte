@@ -43,8 +43,8 @@ Diseño cerrado en [docs/design/milestone1_construccion.md](docs/design/mileston
 ## Milestone 2 — Escritorio de trabajo + mini-juego
 Diseño del primer ítem en [docs/design/milestone2_escritorio.md](docs/design/milestone2_escritorio.md).
 
-- [x] Objeto interactuable "escritorio" (detección de proximidad + prompt "Presioná E") — asset real `Desk.glb`, se coloca desde el catálogo de construcción (tecla `G`) como una pieza más, rotable con `R`. La tecla `interact` (`E`) ya está mapeada pero todavía no dispara nada.
-- [x] Estado "trabajando": bloquear movimiento, cambiar cámara/UI — al presionar `E` cerca del escritorio, la jugadora se teletransporta al `SitSpot` de la pieza, se bloquea movimiento/mouse-look/construcción, y aparece un panel placeholder ("Trabajando... (Esc para salir)"). `Esc` restaura todo. Todavía sin mini-juego real adentro del panel.
+- [x] Objeto interactuable "escritorio" (detección de proximidad + prompt "Presioná E") — asset real `Desk.glb`, se coloca desde el catálogo de construcción (tecla `G`) como una pieza más, rotable con `R`.
+- [x] Estado "trabajando": bloquear movimiento, cambiar cámara/UI — al presionar `E` cerca del escritorio, la jugadora se teletransporta al `SitSpot` de la pieza, se bloquea movimiento/mouse-look/construcción, y aparece un panel placeholder ("Trabajando... (Esc para salir)"). `Esc` restaura todo. Probado y confirmado funcionando en el editor (ver bug de grupos en el doc de diseño). Todavía sin mini-juego real adentro del panel.
 - [ ] Mini-juego "dar clase en vivo"
 - [ ] Lógica de tiempo límite y puntaje
 - [ ] Al terminar: acreditar dinero ganado
