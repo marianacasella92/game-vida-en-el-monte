@@ -20,7 +20,20 @@ Diseño cerrado para el primer ítem de Milestone 2 (ver [GDD](../GDD_Vida_en_el
 - Para distinguir a la jugadora de otras piezas construidas que puedan solaparse con el área (paredes, pisos), el nodo `Player` se sumó al grupo `"player"`, y `desk.gd` sólo reacciona si el body que entra/sale pertenece a ese grupo.
 - Se agregó la acción de input `interact` (tecla `E`, físico 69) en `project.godot`, pero **todavía no dispara ninguna lógica** — eso es el próximo ítem de Milestone 2 ("Estado 'trabajando'"), que va a consumir esta misma tecla para efectivamente sentarse a trabajar.
 
+## Ítem 2 — Estado "trabajando"
+
+- **Trigger:** presionar `interact` (`E`) mientras la jugadora está dentro del área de proximidad del escritorio (ver ítem 1).
+- **Cámara:** al entrar, el jugador (`CharacterBody3D`) se teletransporta a un nodo `Marker3D` hijo de la pieza (`SitSpot`), y el pitch de la cámara (`Head.rotation.x`) se resetea a 0. Al salir, se restaura la transform y el pitch originales. Se eligió mover al jugador entero (no solo la cámara) para que la física quede consistente con "estar sentada ahí".
+  - **Posición de `SitSpot`:** estimada a mano (1.2m en frente del escritorio, sobre el eje -Z local, mirando hacia el escritorio), asumiendo que ese es el lado donde queda el espacio para las piernas/silla del modelo. No se pudo confirmar visualmente. Es un `Marker3D`, así que si al probarlo en el editor la jugadora queda mirando para el lado equivocado (o metida dentro del escritorio), se puede arrastrar/rotar ese nodo directamente en el editor sin tocar código.
+- **UI:** placeholder simple (`WorkSystem/WorkUILayer/Panel` en `player.tscn`) — fondo oscuro + texto "Trabajando... (Esc para salir)". El mini-juego real (ítem siguiente) se va a dibujar dentro de este mismo panel.
+- **Bloqueo de movimiento:** `player.gd` corta `_physics_process` y el mouse-look por completo mientras `WorkSystem.is_working` es `true`.
+- **Bloqueo cruzado con construcción:** mientras se trabaja, `build_system.gd` no procesa ningún input ni actualiza el fantasma — si no, un click para cerrar el panel de trabajo podía terminar borrando una pieza construida cercana (la cámara sigue apuntando a donde estaba antes de sentarse).
+- **Salida:** `Escape` (acción `ui_cancel`). `WorkSystem` la revisa en `_process` (no en `_unhandled_input`) a propósito: `player.gd` ya tiene un manejo genérico de `ui_cancel` que libera el mouse sin condiciones, y como Godot despacha los eventos de input antes de correr `_process` en el mismo frame, esto garantiza que la recaptura del mouse al salir del estado "trabajando" siempre sea la última palabra, sin depender del orden entre `_unhandled_input` de nodos hermanos (que no está garantizado).
+- **Grupo `"work_system"`:** se agregó para que `desk.gd` (que vive en el mundo, no es hijo del jugador) pueda encontrarlo con `get_tree().get_first_node_in_group(...)`, igual que ya hacía con el grupo `"player"`.
+
+**Edge case conocido, no resuelto:** si la jugadora abre el catálogo de construcción (`G`) y en ese estado presiona `E` cerca de un escritorio, se podría entrar a "trabajando" con el catálogo todavía abierto de fondo (UIs superpuestas). Es un caso raro y no rompe nada (se sale con Escape), así que se dejó sin guardia explícita por ahora.
+
 ## Fuera de alcance de este ítem (queda para los próximos ítems de Milestone 2)
-- Bloquear movimiento / cambiar cámara al interactuar.
-- Cualquier mini-juego o lógica de "trabajar".
+- Cualquier mini-juego o lógica real de "trabajar" (la UI de este ítem es placeholder).
+- Lógica de tiempo límite y puntaje.
 - Acreditar dinero.

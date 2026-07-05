@@ -46,6 +46,7 @@ const CATALOG := {
 @onready var camera: Camera3D = get_node("../Head/Camera3D")
 @onready var player: CharacterBody3D = get_parent()
 @onready var catalog_menu: Control = $BuildMenuLayer/Catalog
+@onready var work_system: Node = get_node("../WorkSystem")
 
 var equipped_category: String = "none"
 var equipped_variant: String = ""
@@ -88,6 +89,8 @@ func _piece_scene(category: String, variant: String) -> PackedScene:
 	return CATALOG[category]["variants"][variant]["scene"]
 
 func _unhandled_input(event: InputEvent) -> void:
+	if work_system.is_working:
+		return
 	if event.is_action_pressed("build_menu"):
 		if menu_open:
 			_close_catalog()
@@ -245,7 +248,7 @@ func _snap_wall(point: Vector3) -> Dictionary:
 		return {"position": Vector3(edge_x, y, edge_z), "rotation": rot}
 
 func _process(_delta: float) -> void:
-	if menu_open or not ghost:
+	if menu_open or not ghost or work_system.is_working:
 		return
 
 	var result := _cast_build_ray()

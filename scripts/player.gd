@@ -9,14 +9,16 @@ extends CharacterBody3D
 
 @onready var head: Node3D = $Head
 @onready var build_system: Node = $BuildSystem
+@onready var work_system: Node = $WorkSystem
 
 var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 
 func _ready() -> void:
+	add_to_group("player")
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED and not build_system.menu_open:
+	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED and not build_system.menu_open and not work_system.is_working:
 		rotate_y(-event.relative.x * mouse_sensitivity)
 		head.rotate_x(-event.relative.y * mouse_sensitivity)
 		head.rotation.x = clamp(head.rotation.x, deg_to_rad(min_pitch_deg), deg_to_rad(max_pitch_deg))
@@ -27,6 +29,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 func _physics_process(delta: float) -> void:
+	if work_system.is_working:
+		return
+
 	if not is_on_floor():
 		velocity.y -= gravity * delta
 
