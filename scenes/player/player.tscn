@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://scripts/player.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/build/build_system.gd" id="2"]
@@ -8,6 +8,7 @@
 [ext_resource type="Script" path="res://scripts/ui/hud.gd" id="6"]
 [ext_resource type="Script" path="res://scripts/phone/phone_system.gd" id="7"]
 [ext_resource type="Script" path="res://scripts/phone/marketplace_ui.gd" id="8"]
+[ext_resource type="PackedScene" path="res://scenes/player/arms.tscn" id="9"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1"]
 radius = 0.4
@@ -25,6 +26,8 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0)
 
 [node name="Camera3D" type="Camera3D" parent="Head"]
 current = true
+
+[node name="Arms" parent="Head/Camera3D" instance=ExtResource("9")]
 
 [node name="BuildSystem" type="Node3D" parent="."]
 script = ExtResource("2")

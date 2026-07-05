@@ -11,7 +11,7 @@ extends CharacterBody3D
 @onready var build_system: Node = $BuildSystem
 @onready var work_system: Node = $WorkSystem
 @onready var phone_system: Node = $PhoneSystem
-@onready var arms: Node = null
+@onready var arms: Node = $Head/Camera3D/Arms
 
 var current_tool_id: String = ""
 
@@ -23,19 +23,10 @@ func _ready() -> void:
 	Inventory.inventory_changed.connect(_on_inventory_changed)
 	_on_inventory_changed()
 
-	# instantiate first-person arms placeholder and attach to head camera
-	var arms_scene := preload("res://scripts/player/arms.gd")
-	# arms.gd is a script for a Node3D; create instance and add as child of head/camera
-	arms = Node3D.new()
-	arms.set_script(arms_scene)
-	head.add_child(arms)
-	# initial update
-	if arms and arms.has_method("update_from_inventory"):
-		arms.update_from_inventory()
-
 func _on_inventory_changed() -> void:
 	var selected_item: Dictionary = Inventory.get_selected_item()
 	current_tool_id = selected_item.get("id", "")
+	print("[player] inventory changed selected=", current_tool_id, " slot=", Inventory.selected_slot)
 	if arms and arms.has_method("update_from_inventory"):
 		arms.update_from_inventory()
 

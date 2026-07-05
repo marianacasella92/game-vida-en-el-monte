@@ -1,0 +1,41 @@
+[gd_scene format=3 uid="uid://cumdxo35nvrcm"]
+
+[ext_resource type="Script" uid="uid://bvaduxarabbbt" path="res://scripts/player/arms.gd" id="1"]
+[ext_resource type="PackedScene" uid="uid://bekoafy3f7lcp" path="res://assets/character/first_person_hands_rigged.glb" id="2"]
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_arm"]
+radius = 0.08
+height = 0.3
+
+[sub_resource type="BoxMesh" id="BoxMesh_item"]
+size = Vector3(0.12, 0.12, 0.12)
+
+[node name="Arms" type="Node3D" unique_id=255899579]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.08, -0.16, -0.18)
+script = ExtResource("1")
+use_real_model = true
+
+[node name="ArmsRoot" type="Node3D" parent="." unique_id=1039149322]
+transform = Transform3D(1, 0, 0, 0, 0.990268, -0.139173, 0, 0.139173, 0.990268, 0, 0, 0)
+
+[node name="PlaceholderRoot" type="Node3D" parent="ArmsRoot" unique_id=1693582729]
+
+[node name="LeftArm" type="MeshInstance3D" parent="ArmsRoot/PlaceholderRoot" unique_id=270167663]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.15, -0.18, -0.25)
+mesh = SubResource("CapsuleMesh_arm")
+
+[node name="RightArm" type="MeshInstance3D" parent="ArmsRoot/PlaceholderRoot" unique_id=1603323133]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.15, -0.18, -0.25)
+mesh = SubResource("CapsuleMesh_arm")
+
+[node name="HeldItem" type="MeshInstance3D" parent="ArmsRoot/PlaceholderRoot" unique_id=1401127541]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.18, -0.2, -0.4)
+mesh = SubResource("BoxMesh_item")
+
+[node name="RealModelRoot" type="Node3D" parent="ArmsRoot" unique_id=1298660378]
+
+[node name="ModelPivot" type="Node3D" parent="ArmsRoot/RealModelRoot" unique_id=1871221140]
+transform = Transform3D(-0.99999976, -0.00010187918, -0.00072490843, -0.00037524023, 0.9216122, 0.38811424, 0.00062854326, 0.38811436, -0.9216118, 0, -0.8693961, -0.56227446)
+
+[node name="RealArmsModel" parent="ArmsRoot/RealModelRoot/ModelPivot" unique_id=336661265 instance=ExtResource("2")]
+transform = Transform3D(1, 0, 0, 0, 1.0000001, 0, 0, 0, 1.0000001, 0, 0, 0)
