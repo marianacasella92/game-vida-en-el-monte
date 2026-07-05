@@ -26,6 +26,15 @@ const ITEMS := {
 var money_label: Label
 var item_list: VBoxContainer
 var save_feedback: Label
+var reset_button: Button
+
+## Ventana de confirmación del botón de reinicio: el primer click la abre por
+## esta cantidad de segundos; si no se confirma con un segundo click a
+## tiempo, se vence sola y el próximo click vuelve a pedir confirmación — así
+## no queda un "click fantasma" pendiente si volvés al celular mucho después
+## por otra razón y tocás sin querer el mismo botón.
+const RESET_CONFIRM_WINDOW := 5.0
+var _reset_confirm_until: float = 0.0
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -71,9 +80,15 @@ func _ready() -> void:
 	save_feedback = Label.new()
 	vbox.add_child(save_feedback)
 
+	reset_button = Button.new()
+	reset_button.add_theme_color_override("font_color", Color(1.0, 0.4, 0.4))
+	reset_button.pressed.connect(_on_reset_pressed)
+	vbox.add_child(reset_button)
+
 func refresh() -> void:
 	money_label.text = "Plata: $ %d" % Economy.money
 	save_feedback.text = ""
+	_update_reset_button()
 
 	for child in item_list.get_children():
 		child.queue_free()
@@ -118,6 +133,17 @@ func _on_buy_consumable_pressed(price: int, grants_item: Dictionary) -> void:
 func _on_save_pressed() -> void:
 	SaveManager.save_game()
 	save_feedback.text = "Guardado ✓"
+
+func _update_reset_button() -> void:
+	var confirming: bool = Time.get_unix_time_from_system() < _reset_confirm_until
+	reset_button.text = "¿Seguro? Click para confirmar" if confirming else "Reiniciar partida (borra todo)"
+
+func _on_reset_pressed() -> void:
+	if Time.get_unix_time_from_system() < _reset_confirm_until:
+		SaveManager.reset_game()
+		return
+	_reset_confirm_until = Time.get_unix_time_from_system() + RESET_CONFIRM_WINDOW
+	_update_reset_button()
 
 func _on_dim_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed:

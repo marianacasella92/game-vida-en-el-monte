@@ -9,9 +9,15 @@ var items: Dictionary = {}
 var selected_slot: int = 0
 
 func _ready() -> void:
+	reset()
+
+## Vuelve al inventario inicial de partida nueva. Usado por _ready() y por
+## SaveManager.reset_game().
+func reset() -> void:
 	items = {
 		0: {"id": "seed", "name": "Semilla", "stack": 1},
 	}
+	selected_slot = 0
 	inventory_changed.emit()
 
 func add_item(item_id: String, item_name: String, stack: int = 1) -> void:

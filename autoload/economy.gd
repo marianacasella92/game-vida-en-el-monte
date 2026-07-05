@@ -27,3 +27,9 @@ func purchase_item(item_id: String, price: int) -> bool:
 	purchased_items[item_id] = true
 	item_purchased.emit(item_id)
 	return true
+
+## Usado por SaveManager.reset_game() para volver a partida nueva.
+func reset() -> void:
+	money = 0
+	purchased_items = {}
+	money_changed.emit(money)

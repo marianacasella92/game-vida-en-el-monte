@@ -33,8 +33,14 @@ var sleep: float
 
 func _ready() -> void:
 	add_to_group("player_needs")
+	reset()
+
+## Vuelve hambre/sueño al máximo. Usado por _ready() y por SaveManager.reset_game().
+func reset() -> void:
 	hunger = max_hunger
 	sleep = max_sleep
+	hunger_changed.emit(hunger)
+	sleep_changed.emit(sleep)
 
 func _process(delta: float) -> void:
 	if hunger > 0.0:

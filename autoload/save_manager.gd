@@ -79,3 +79,18 @@ func load_game() -> void:
 	var world: Node = get_tree().current_scene
 	if world and world.has_method("load_crops"):
 		world.load_crops(data.get("crops", []))
+
+## Borra el archivo de guardado y vuelve todos los autoloads persistibles a su
+## estado de partida nueva, después recarga la escena actual para que el mundo
+## (piezas construidas, cultivos) también arranque de cero. Separado acá a
+## propósito — cuando se organice una pantalla de Configuración/Settings más
+## adelante, el botón que la dispare solo tiene que llamar a esta función, sin
+## reimplementar nada.
+func reset_game() -> void:
+	if FileAccess.file_exists(SAVE_PATH):
+		DirAccess.remove_absolute(SAVE_PATH)
+	Economy.reset()
+	Inventory.reset()
+	PlayerNeeds.reset()
+	print("[save] partida reiniciada, recargando escena")
+	get_tree().reload_current_scene()
