@@ -27,13 +27,19 @@ const CATALOG := {
 		"label": "Techo",
 		"variants": {
 			"flat": {"label": "Plano", "scene": preload("res://scenes/build/roof.tscn")},
+			"center": {"label": "Faldón A", "scene": preload("res://scenes/build/roof_center.tscn")},
+			"center_mirror": {"label": "Faldón B", "scene": preload("res://scenes/build/roof_center_mirror.tscn")},
+			"l": {"label": "Remate Izq.", "scene": preload("res://scenes/build/roof_l.tscn")},
+			"r": {"label": "Remate Der.", "scene": preload("res://scenes/build/roof_r.tscn")},
+			"corner": {"label": "Esquina", "scene": preload("res://scenes/build/roof_corner.tscn")},
+			"middle": {"label": "Cumbrera", "scene": preload("res://scenes/build/roof_middle.tscn")},
 		},
 	},
 }
 
 @onready var camera: Camera3D = get_node("../Head/Camera3D")
 @onready var player: CharacterBody3D = get_parent()
-@onready var radial_menu: Control = $RadialMenuLayer/Wheel
+@onready var catalog_menu: Control = $BuildMenuLayer/Catalog
 
 var equipped_category: String = "none"
 var equipped_variant: String = ""
@@ -43,6 +49,7 @@ var ghost_shape: Shape3D
 var ghost_valid: bool = false
 var menu_open: bool = false
 var manual_flip: bool = false
+var roof_rotation_steps: int = 0
 var floor_cells: Dictionary = {}
 
 var valid_material := StandardMaterial3D.new()
@@ -57,7 +64,9 @@ func _ready() -> void:
 	invalid_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	invalid_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 
-	radial_menu.setup(_menu_catalog())
+	catalog_menu.setup(_menu_catalog())
+	catalog_menu.piece_chosen.connect(_on_piece_chosen)
+	catalog_menu.cancelled.connect(_close_catalog)
 	_spawn_ghost()
 
 func _menu_catalog() -> Dictionary:
@@ -74,28 +83,42 @@ func _piece_scene(category: String, variant: String) -> PackedScene:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("build_menu"):
-		menu_open = true
-		if ghost:
-			ghost.visible = false
-		radial_menu.open()
-	elif event.is_action_released("build_menu"):
-		menu_open = false
-		var choice: Dictionary = radial_menu.close()
-		if not choice.is_empty():
-			equipped_category = choice["category"]
-			equipped_variant = choice["variant"]
-			_spawn_ghost()
-		elif ghost:
-			ghost.visible = true
-	elif menu_open and event is InputEventMouseMotion:
-		radial_menu.add_motion(event.relative)
-	elif event.is_action_pressed("build_flip") and not menu_open:
+		if menu_open:
+			_close_catalog()
+		else:
+			_open_catalog()
+	elif menu_open:
+		return
+	elif event.is_action_pressed("build_flip"):
 		manual_flip = not manual_flip
-	elif event is InputEventMouseButton and event.pressed and not menu_open:
+	elif event.is_action_pressed("build_rotate"):
+		if equipped_category == "roof":
+			roof_rotation_steps = (roof_rotation_steps + 1) % 4
+	elif event is InputEventMouseButton and event.pressed:
 		if event.button_index == MOUSE_BUTTON_LEFT:
 			_place_piece()
 		elif event.button_index == MOUSE_BUTTON_RIGHT:
 			_remove_piece()
+
+func _open_catalog() -> void:
+	menu_open = true
+	if ghost:
+		ghost.visible = false
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	catalog_menu.open()
+
+func _close_catalog() -> void:
+	menu_open = false
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	catalog_menu.close()
+	if ghost:
+		ghost.visible = true
+
+func _on_piece_chosen(category: String, variant: String) -> void:
+	equipped_category = category
+	equipped_variant = variant
+	_spawn_ghost()
+	_close_catalog()
 
 func _find_mesh_instances(node: Node) -> Array[MeshInstance3D]:
 	var found: Array[MeshInstance3D] = []
@@ -113,6 +136,7 @@ func _spawn_ghost() -> void:
 		ghost_shape = null
 
 	manual_flip = false
+	roof_rotation_steps = 0
 
 	if equipped_category == "none":
 		return
@@ -231,7 +255,7 @@ func _process(_delta: float) -> void:
 		rot_y = placement["rotation"]
 	elif equipped_category == "roof":
 		snapped = _snap_roof(target_point)
-		rot_y = 0.0
+		rot_y = roof_rotation_steps * (PI / 2.0)
 	else:
 		snapped = _snap_flat(target_point)
 		rot_y = 0.0

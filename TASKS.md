@@ -10,26 +10,30 @@ Cada tarea está pensada para entrar en una sesión de 1-3hs. Tildar con `[x]` a
 - [x] Repo git + GitHub conectado
 
 ## Milestone 1 — Construcción (casa/terreno) — COMPLETO
-Diseño cerrado en [docs/design/milestone1_construccion.md](docs/design/milestone1_construccion.md). Grid de 2m (ajustado al tamaño real de los assets), sin modo de construcción separado, menú radial con `G`, alcance de 10m, auto-encaje de la pared en el borde más cercano, gratis e ilimitado por ahora. Piezas con assets reales de Quaternius (ver [CREDITS.md](CREDITS.md)).
+Diseño cerrado en [docs/design/milestone1_construccion.md](docs/design/milestone1_construccion.md). Grid de 2m (ajustado al tamaño real de los assets), sin modo de construcción separado, alcance de 10m, auto-encaje de la pared en el borde más cercano, gratis e ilimitado por ahora. Piezas con assets reales de Quaternius (ver [CREDITS.md](CREDITS.md)).
 
 - [x] Crear piezas placeholder: `wall.tscn`, `floor.tscn`, `roof.tscn` (StaticBody3D + colisión, cubos grises)
 - [x] Nodo/script `BuildSystem`: raycast desde cámara + snap a grid de 1m
 - [x] Preview fantasma: instancia semi-transparente que sigue el raycast, verde/rojo según validez
-- [x] Menú radial (`Control`) con Pared/Piso/Techo/Manos vacías, se abre manteniendo `G`
+- [x] Menú de construcción con Pared/Piso/Techo/Manos vacías, se abre/cierra con `G`
 - [x] Pieza equipada persiste hasta elegir otra en el menú
 - [x] ~~Rotación libre con `R` + mouse~~ → reemplazada por auto-encaje: la pared se orienta sola según el borde de celda más cercano (ver devlog)
 - [x] Colocar pieza con click izquierdo (si el preview está en verde)
 - [x] Borrar pieza con click derecho apuntando a una ya colocada
 - [x] Limitar alcance de colocación/borrado a 5 metros
 
-**Refactor de escalabilidad (hecho):** el sistema separa *categoría* (cómo se posiciona: pared/piso/techo, en `_process`) de *variante* (qué escena se instancia). Agregar una pieza nueva es sumar una entrada al `CATALOG` de `build_system.gd` + su `.tscn` con `metadata/piece_category` y `metadata/piece_id`, sin tocar la lógica de snap. El menú radial (`radial_menu.gd`) es genérico: si una categoría tiene más de una variante, empujar el stick hasta el borde abre un segundo nivel para elegirla (hoy "Pared" tiene Recta/Puerta/Ventana como prueba).
+**Refactor de escalabilidad (hecho):** el sistema separa *categoría* (cómo se posiciona: pared/piso/techo, en `_process`) de *variante* (qué escena se instancia). Agregar una pieza nueva es sumar una entrada al `CATALOG` de `build_system.gd` + su `.tscn` con `metadata/piece_category` y `metadata/piece_id`, sin tocar la lógica de snap.
+- Pared: Recta / Puerta / Ventana.
+- Techo: Plano / Faldón A / Faldón B / Remate Izq. / Remate Der. / Esquina / Cumbrera (piezas `Roof_Wooden_2x1_*` del pack). Como son piezas direccionales, se agregó una acción nueva `build_rotate` (tecla `R`) que rota 90° sobre Y la pieza de techo equipada — separada de `build_flip` (`F`), que sigue siendo solo el flip binario de la pared.
+
+**Menú: de rueda radial a catálogo (hecho):** el menú radial (`radial_menu.gd`, borrado) no escalaba a categorías con muchas piezas (ej. Escaleras tiene 19 variantes en el pack). Se reemplazó por `catalog_menu.gd`: un panel con lista de categorías a la izquierda y lista de variantes con scroll a la derecha, con el mouse liberado (`Input.mouse_mode`) para clickear. `G` alterna abrir/cerrar (ya no es "mantener apretado"), Escape o click afuera del panel también cierra sin elegir nada.
+
+**Pendiente — catálogo completo del pack (en curso):** se relevaron ~90 piezas más de la familia Plaster/Madera que todavía no están cargadas (más paredes, pisos y techos de madera, puertas y marcos independientes, ventanas y postigos, escaleras, balcones, aleros, tapas de hueco, esquinas de pared). Se van a ir agregando de a categorías, priorizando primero las que reutilizan snap ya probado (más variantes de pared/piso/techo) antes que las que necesitan lógica de posicionamiento nueva (escaleras, balcones, aleros, puertas/marcos independientes), porque cada categoría nueva requiere entender cómo se ancla a la grilla y eso salió mal a la primera con el techo.
 
 **Mejoras futuras posibles (no urgentes, quedó bastante básico a propósito para cerrar el vertical slice):**
 - Las variantes puerta/ventana usan la misma caja de colisión sólida que la pared recta (no se puede caminar por la puerta todavía) — falta ajustar la forma de colisión por variante o agregar un hueco pasable.
-- Esquinas/juntas dedicadas para pared y techo (el pack ya trae piezas `_L`, `_R`, `_Corner`, `_Middle`) — se agregan igual que puerta/ventana, pero seguramente necesiten su propia rotación de 4 direcciones en vez de la de pared/techo actual.
 - Soporte para más de un piso/planta (hoy `wall_height` asume una sola altura fija).
 - Deshacer la última pieza colocada.
-- Piso/techo con su propia orientación si hace falta (hoy no la necesitan, son simétricas salvo que se agreguen variantes direccionales como esquinas).
 
 ## Milestone 2 — Escritorio de trabajo + mini-juego
 - [ ] Objeto interactuable "escritorio" (detección de proximidad + prompt "Presioná E")

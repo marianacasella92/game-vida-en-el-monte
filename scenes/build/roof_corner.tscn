@@ -1,0 +1,18 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="PackedScene" path="res://assets/building/Medieval Village MegaKit[Standard]/glTF/Roof_Wooden_2x1_Corner.gltf" id="1"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_1"]
+size = Vector3(1.16, 0.27, 1.16)
+
+[node name="RoofCorner" type="StaticBody3D"]
+groups=["build_piece"]
+metadata/piece_category = "roof"
+metadata/piece_id = "corner"
+
+[node name="Model" parent="." instance=ExtResource("1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.15, 0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.58, 0.14, -0.58)
+shape = SubResource("BoxShape3D_1")
