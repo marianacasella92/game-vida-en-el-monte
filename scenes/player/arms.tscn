@@ -35,7 +35,20 @@ mesh = SubResource("BoxMesh_item")
 [node name="RealModelRoot" type="Node3D" parent="ArmsRoot" unique_id=1298660378]
 
 [node name="ModelPivot" type="Node3D" parent="ArmsRoot/RealModelRoot" unique_id=1871221140]
-transform = Transform3D(-0.99999976, -0.00010187918, -0.00072490843, -0.00037524023, 0.9216122, 0.38811424, 0.00062854326, 0.38811436, -0.9216118, 0, -0.8693961, -0.56227446)
+transform = Transform3D(-0.99999976, -0.00010187918, -0.00072490855, 0.00010187916, 0.9612624, -0.27563727, 0.0007249084, -0.27563727, -0.96126205, 0, -0.890831, -0.012565151)
 
 [node name="RealArmsModel" parent="ArmsRoot/RealModelRoot/ModelPivot" unique_id=336661265 instance=ExtResource("2")]
 transform = Transform3D(1, 0, 0, 0, 1.0000001, 0, 0, 0, 1.0000001, 0, 0, 0)
+
+[node name="ItemAttach" type="BoneAttachment3D" parent="ArmsRoot/RealModelRoot/ModelPivot/RealArmsModel/Sketchfab_model/fps-hands_fbx/RootNode/basicRig/Object_4/Skeleton3D" parent_id_path=PackedInt32Array(336661265, 1990788930) index="2" unique_id=547062778]
+unique_name_in_owner = true
+transform = Transform3D(0.35698107, -0.26119074, 0.89685196, -0.642495, -0.76558834, 0.03277449, 0.6780593, -0.58792293, -0.44111428, -0.0031976493, -0.0013436185, 0.007054828)
+bone_name = "hand.R_010"
+bone_idx = 12
+
+[node name="RealHeldItem" type="MeshInstance3D" parent="ArmsRoot/RealModelRoot/ModelPivot/RealArmsModel/Sketchfab_model/fps-hands_fbx/RootNode/basicRig/Object_4/Skeleton3D/ItemAttach" unique_id=168228902]
+unique_name_in_owner = true
+transform = Transform3D(0.001, 1.1920932e-10, 7.4505804e-11, -1.1920931e-10, 0.001, -1.5646222e-10, -7.4505825e-11, 1.564622e-10, 0.001, 1.4188467e-05, 0.00064073596, 0.0001569977)
+mesh = SubResource("BoxMesh_item")
+
+[editable path="ArmsRoot/RealModelRoot/ModelPivot/RealArmsModel"]

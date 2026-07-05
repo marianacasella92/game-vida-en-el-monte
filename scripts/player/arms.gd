@@ -11,6 +11,7 @@ extends Node3D
 @onready var left_arm: MeshInstance3D = $ArmsRoot/PlaceholderRoot/LeftArm
 @onready var right_arm: MeshInstance3D = $ArmsRoot/PlaceholderRoot/RightArm
 @onready var held_item: MeshInstance3D = $ArmsRoot/PlaceholderRoot/HeldItem
+@onready var real_held_item: MeshInstance3D = %RealHeldItem
 
 func _ready() -> void:
 	_apply_materials()
@@ -27,22 +28,23 @@ func _apply_materials() -> void:
 	var mat2 := StandardMaterial3D.new()
 	mat2.albedo_color = item_mesh_color
 	held_item.material_override = mat2
+	real_held_item.material_override = mat2
 
 func show_arms(visible_state: bool) -> void:
 	visible = visible_state
 
 func update_from_inventory() -> void:
 	var sel: Dictionary = Inventory.get_selected_item()
-	if use_real_model and real_model_root.get_child_count() > 0:
-		real_model_root.visible = true
-		placeholder_root.visible = false
-	else:
-		real_model_root.visible = false
-		placeholder_root.visible = true
+	var showing_real := use_real_model and real_model_root.get_child_count() > 0
+	real_model_root.visible = showing_real
+	placeholder_root.visible = not showing_real
 
-	# show the held-item placeholder only when there's a selected item
-	held_item.visible = not sel.is_empty()
-	if held_item.visible:
+	# show the held item only on whichever arms are currently active
+	var has_item := not sel.is_empty()
+	held_item.visible = not showing_real and has_item
+	real_held_item.visible = showing_real and has_item
+
+	if has_item:
 		var id: String = sel.get("id", "")
 		var mat: StandardMaterial3D = held_item.material_override
 		if id == "seed":

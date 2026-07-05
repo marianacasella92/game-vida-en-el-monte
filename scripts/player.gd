@@ -41,6 +41,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event is InputEventMouseButton and event.pressed and Input.mouse_mode == Input.MOUSE_MODE_VISIBLE:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
+	if event.is_action_pressed("hotbar_0"):
+		Inventory.deselect()
+		return
+
 	for slot in range(9):
 		if event.is_action_pressed("hotbar_%d" % (slot + 1)):
 			Inventory.select_slot(slot)

@@ -71,6 +71,10 @@ Diseño del primer ítem en [docs/design/milestone2_escritorio.md](docs/design/m
 - [x] Completar [CREDITS.md](CREDITS.md) con la fuente de cada asset usado
 - [x] Reemplazar geometría placeholder de pared/piso/techo por assets reales (Medieval Village MegaKit)
 - [ ] Curar/organizar el resto de los packs descargados a medida que se vayan necesitando (huerta, interior, naturaleza, etc. — no urgente todavía, es para milestones futuros)
+- [x] Brazos en primera persona: `scenes/player/arms.tscn` (instanciada bajo `Head/Camera3D` en `player.tscn`), con `RealArmsModel` (`assets/character/first_person_hands_rigged.glb`, escala corregida vía import `root_scale = 0.01`) posicionado a mano en `ModelPivot`. Placeholders de cápsulas quedan como fallback si `use_real_model = false`.
+
+**Deuda técnica pendiente (brazos):**
+- [ ] El modelo real (`RealArmsModel`) se ve en bind pose fijo (sin animación) — falta posar/animar los dedos y brazos para que sostengan herramientas de forma creíble, y resolver el punto siguiente de anclaje del ítem en la mano.
 
 ## Milestone 4 — Huerta básica + necesidades personales
 Objetivo del sprint: cerrar el siguiente paso del loop de juego según el GDD, incorporando una huerta simple y una rutina de cuidado básico para que el gameplay se sienta más vivo sin entrar todavía en energía/agua complejas.

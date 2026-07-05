@@ -41,8 +41,12 @@ func select_slot(slot: int) -> void:
 	selected_slot = slot
 	inventory_changed.emit()
 
+func deselect() -> void:
+	selected_slot = -1
+	inventory_changed.emit()
+
 func get_selected_item() -> Dictionary:
-	if items.has(selected_slot):
+	if selected_slot >= 0 and items.has(selected_slot):
 		return items[selected_slot]
 	return {}
 
