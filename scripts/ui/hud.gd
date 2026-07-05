@@ -1,59 +1,54 @@
 extends CanvasLayer
 
-## HUD minimalista (docs/GameDesign/PXD_Documento_Fundacional_v0.2.md): sin
-## colores saturados tipo semáforo — el feedback de "atención acá" es un
-## ícono de advertencia que aparece/desaparece, no un cambio de color de la
-## barra entera. Estilos compartidos en scripts/ui/hud_style.gd.
+## HUD de vitales (docs/GameDesign/PXD_Diseno_HUD_UI_v1.md, sección 2):
+## corazón standalone (sin barra) para vida, manzana+barra para hambre,
+## rayo+barra para energía — 100% assets reales (assets/hud/), nada dibujado
+## por código salvo el relleno blanco liso de las barras (no hay un asset de
+## relleno separado, solo el marco vacío).
 
-const BATTERY_FULL := preload("res://assets/hud/Icon set 1/1x/Battery - full 512 px.png")
-const BATTERY_LOW := preload("res://assets/hud/Icon set 1/1x/Low battery 512 px.png")
-const BATTERY_EMPTY := preload("res://assets/hud/Icon set 1/1x/Empty battery  512 px.png")
+@onready var root: Control = $Root
+@onready var health_icon: TextureRect = $Root/HealthIcon
+@onready var hunger_bar: TextureProgressBar = $Root/HungerRow/HungerBar
+@onready var energy_bar: TextureProgressBar = $Root/EnergyRow/EnergyBar
 
-@onready var health_bar: ProgressBar = $Root/HealthRow/HealthBar
-@onready var health_warning: TextureRect = $Root/HealthRow/HealthWarning
-@onready var energy_icon: TextureRect = $Root/EnergyRow/EnergyIcon
-@onready var energy_bar: ProgressBar = $Root/EnergyRow/EnergyBar
-@onready var energy_warning: TextureRect = $Root/EnergyRow/EnergyWarning
-@onready var hunger_bar: ProgressBar = $Root/HungerRow/HungerBar
-@onready var hunger_warning: TextureRect = $Root/HungerRow/HungerWarning
-@onready var money_label: Label = $Root/MoneyRow/MoneyLabel
+@onready var build_system: Node = get_tree().get_first_node_in_group("build_system")
+@onready var work_system: Node = get_tree().get_first_node_in_group("work_system")
+@onready var phone_system: Node = get_tree().get_first_node_in_group("phone_system")
+@onready var inventory_system: Node = get_tree().get_first_node_in_group("inventory_system")
 
 func _ready() -> void:
-	for bar in [health_bar, energy_bar, hunger_bar]:
-		bar.add_theme_stylebox_override("background", HudStyle.bar_background())
+	var fill := _make_fill_texture()
+	hunger_bar.texture_progress = fill
+	energy_bar.texture_progress = fill
 
-	health_bar.add_theme_stylebox_override("fill", HudStyle.bar_fill(HudStyle.TINT_HEALTH))
-	energy_bar.add_theme_stylebox_override("fill", HudStyle.bar_fill(HudStyle.TINT_ENERGY))
-	hunger_bar.add_theme_stylebox_override("fill", HudStyle.bar_fill(HudStyle.TINT_HUNGER))
-
-	Economy.money_changed.connect(_update_money)
-	PlayerNeeds.health_changed.connect(_update_health)
-	PlayerNeeds.sleep_changed.connect(_update_energy)
 	PlayerNeeds.hunger_changed.connect(_update_hunger)
+	PlayerNeeds.sleep_changed.connect(_update_energy)
 
-	_update_money(Economy.money)
-	_update_health(PlayerNeeds.health)
-	_update_energy(PlayerNeeds.sleep)
 	_update_hunger(PlayerNeeds.hunger)
+	_update_energy(PlayerNeeds.sleep)
 
-func _update_money(new_amount: int) -> void:
-	money_label.text = "%d" % new_amount
+## bar_hunger.png/bar_energy.png son solo el marco vacío — no hay un sprite de
+## relleno generado, así que se arma uno blanco liso de 1x1 acá, que
+## TextureProgressBar estira y recorta según el valor.
+func _make_fill_texture() -> ImageTexture:
+	var image := Image.create(1, 1, false, Image.FORMAT_RGBA8)
+	image.fill(Color.WHITE)
+	return ImageTexture.create_from_image(image)
 
-func _update_health(value: float) -> void:
-	health_bar.value = value
-	health_warning.visible = value <= PlayerNeeds.max_health * PlayerNeeds.neglect_threshold_ratio
-
-func _update_energy(value: float) -> void:
-	energy_bar.value = value
-	var ratio: float = value / PlayerNeeds.max_sleep
-	if ratio <= PlayerNeeds.neglect_threshold_ratio:
-		energy_icon.texture = BATTERY_EMPTY
-	elif ratio <= 0.5:
-		energy_icon.texture = BATTERY_LOW
-	else:
-		energy_icon.texture = BATTERY_FULL
-	energy_warning.visible = ratio <= PlayerNeeds.neglect_threshold_ratio
+## PXD_Diseno_HUD_UI_v1.md, sección 5: el HUD de vitales se oculta por
+## completo mientras hay una pantalla modal abierta (catálogo, celular,
+## trabajando), y vuelve a aparecer al cerrarla.
+func _process(_delta: float) -> void:
+	var modal_open: bool = (
+		(build_system and build_system.menu_open)
+		or (work_system and work_system.is_working)
+		or (phone_system and phone_system.is_open)
+		or (inventory_system and inventory_system.is_open)
+	)
+	root.visible = not modal_open
 
 func _update_hunger(value: float) -> void:
 	hunger_bar.value = value
-	hunger_warning.visible = value <= PlayerNeeds.max_hunger * PlayerNeeds.neglect_threshold_ratio
+
+func _update_energy(value: float) -> void:
+	energy_bar.value = value

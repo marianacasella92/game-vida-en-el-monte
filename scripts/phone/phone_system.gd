@@ -8,6 +8,7 @@ var is_open: bool = false
 
 @onready var work_system: Node = get_node("../WorkSystem")
 @onready var build_system: Node = get_node("../BuildSystem")
+@onready var inventory_system: Node = get_node("../InventorySystem")
 @onready var panel: Control = $PhoneUILayer/Panel
 
 func _ready() -> void:
@@ -17,7 +18,7 @@ func _ready() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if not event.is_action_pressed("open_phone"):
 		return
-	if work_system.is_working or build_system.menu_open:
+	if work_system.is_working or build_system.menu_open or inventory_system.is_open:
 		return
 	if is_open:
 		close_phone()

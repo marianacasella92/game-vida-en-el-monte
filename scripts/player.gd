@@ -11,6 +11,7 @@ extends CharacterBody3D
 @onready var build_system: Node = $BuildSystem
 @onready var work_system: Node = $WorkSystem
 @onready var phone_system: Node = $PhoneSystem
+@onready var inventory_system: Node = $InventorySystem
 @onready var arms: Node = $Head/Camera3D/Arms
 
 var current_tool_id: String = ""
@@ -20,18 +21,18 @@ var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 func _ready() -> void:
 	add_to_group("player")
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
-	Inventory.inventory_changed.connect(_on_inventory_changed)
+	Hotbar.inventory_changed.connect(_on_inventory_changed)
 	_on_inventory_changed()
 
 func _on_inventory_changed() -> void:
-	var selected_item: Dictionary = Inventory.get_selected_item()
+	var selected_item: Dictionary = Hotbar.get_selected_item()
 	current_tool_id = selected_item.get("id", "")
-	print("[player] inventory changed selected=", current_tool_id, " slot=", Inventory.selected_slot)
+	print("[player] inventory changed selected=", current_tool_id, " slot=", Hotbar.selected_slot)
 	if arms and arms.has_method("update_from_inventory"):
 		arms.update_from_inventory()
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED and not build_system.menu_open and not work_system.is_working and not phone_system.is_open:
+	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED and not build_system.menu_open and not work_system.is_working and not phone_system.is_open and not inventory_system.is_open:
 		rotate_y(-event.relative.x * mouse_sensitivity)
 		head.rotate_x(-event.relative.y * mouse_sensitivity)
 		head.rotation.x = clamp(head.rotation.x, deg_to_rad(min_pitch_deg), deg_to_rad(max_pitch_deg))
@@ -42,16 +43,16 @@ func _unhandled_input(event: InputEvent) -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 	if event.is_action_pressed("hotbar_0"):
-		Inventory.deselect()
+		Hotbar.deselect()
 		return
 
-	for slot in range(9):
+	for slot in range(Hotbar.SLOT_COUNT):
 		if event.is_action_pressed("hotbar_%d" % (slot + 1)):
-			Inventory.select_slot(slot)
+			Hotbar.select_slot(slot)
 			break
 
 func _physics_process(delta: float) -> void:
-	if work_system.is_working or phone_system.is_open:
+	if work_system.is_working or phone_system.is_open or inventory_system.is_open:
 		return
 
 	if not is_on_floor():

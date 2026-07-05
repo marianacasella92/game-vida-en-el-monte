@@ -36,7 +36,7 @@ func show_arms(visible_state: bool) -> void:
 	visible = visible_state
 
 func update_from_inventory() -> void:
-	var sel: Dictionary = Inventory.get_selected_item()
+	var sel: Dictionary = Hotbar.get_selected_item()
 	var showing_real := use_real_model and real_model_root.get_child_count() > 0
 	real_model_root.visible = showing_real
 	placeholder_root.visible = not showing_real

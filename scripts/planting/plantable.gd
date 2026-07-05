@@ -10,4 +10,4 @@ func _ready() -> void:
 
 func interact(tool_id: String, actor: Node) -> void:
     # actor is typically the player; delegate to CropManager for planting
-    CropManager.interact(self, tool_id, Inventory)
+    CropManager.interact(self, tool_id, Hotbar)

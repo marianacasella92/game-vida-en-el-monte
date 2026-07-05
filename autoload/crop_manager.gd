@@ -99,14 +99,16 @@ func water_plot(plot: Node, _inventory=null) -> void:
 	plot.set_meta("watered_until", Time.get_unix_time_from_system() + watering_duration)
 	print("[crop] %s regada, sigue creciendo por %.1fs más" % [plot.name, watering_duration])
 
-func harvest_plot(plot: Node, inventory=null) -> void:
+## El segundo parámetro no se usa acá (cosechar entrega el ítem vía
+## Backpack.add_item(), no depende de qué hotbar se pase) — se mantiene por
+## firma uniforme con plant_seed()/water_plot(), que sí lo necesitan.
+func harvest_plot(plot: Node, _inventory=null) -> void:
 	if plot.get_meta("crop_state", "empty") != "ready":
 		return # solo se puede cosechar si está lista; llamable desde cualquier lado, no solo desde interact()
 	set_plot_state(plot, "empty", 0)
 	plot.set_meta("crop_progress", 0.0)
 	plot.set_meta("watered_until", 0.0)
-	if inventory:
-		inventory.add_item("carrot", "Zanahoria")
+	Backpack.add_item("carrot", "Zanahoria")
 	emit_signal("harvested", plot)
 	emit_signal("state_changed", plot, "empty")
 

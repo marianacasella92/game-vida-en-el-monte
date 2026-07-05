@@ -91,14 +91,14 @@ Convención de controles: **click izquierdo** es "usar lo que tengo equipado en 
 
 ## JSON y Dictionary con claves numéricas
 
-`JSON.stringify()` convierte **todas** las claves de un `Dictionary` a string, sin excepción. Si algo como `Inventory.items` (claves `int`: `0, 1, 2...`) se guarda tal cual y se lee de vuelta con `JSON.parse_string()`, las claves vuelven como `"0", "1", "2"` (string) — cualquier `items.has(0)` o `items[slot]` con `slot: int` deja de encontrar nada, porque `0 != "0"` como clave de Dictionary en GDScript.
+`JSON.stringify()` convierte **todas** las claves de un `Dictionary` a string, sin excepción. Si algo como `Hotbar.items` (claves `int`: `0, 1, 2...`) se guarda tal cual y se lee de vuelta con `JSON.parse_string()`, las claves vuelven como `"0", "1", "2"` (string) — cualquier `items.has(0)` o `items[slot]` con `slot: int` deja de encontrar nada, porque `0 != "0"` como clave de Dictionary en GDScript.
 
-**Regla:** al restaurar un Dictionary con claves numéricas desde el guardado, reconstruirlo a mano convirtiendo cada clave con `int(key)`. Ver `Inventory.apply_save_data()`.
+**Regla:** al restaurar un Dictionary con claves numéricas desde el guardado, reconstruirlo a mano convirtiendo cada clave con `int(key)`. Ver `Hotbar.apply_save_data()`.
 
 ## Sistema de guardado — estado actual y deuda conocida
 
-`SaveManager` arma un único diccionario JSON llamando a cada sistema. La mayoría todavía usa nombres de método ad-hoc (`Economy.money` leído directo, `build_system.serialize_pieces()`, `world.serialize_crops()`), pero **`Inventory` ya adoptó el contrato estándar** (`get_save_data() -> Dictionary` / `apply_save_data(data: Dictionary)`) — es el primero, y el criterio para cualquier sistema nuevo que persista algo (hambre/sueño, día-noche) es usar ese mismo contrato, no inventar otro nombre.
+`SaveManager` arma un único diccionario JSON llamando a cada sistema. La mayoría todavía usa nombres de método ad-hoc (`Economy.money` leído directo, `build_system.serialize_pieces()`, `world.serialize_crops()`), pero **`Hotbar` ya adoptó el contrato estándar** (`get_save_data() -> Dictionary` / `apply_save_data(data: Dictionary)`) — es el primero, y el criterio para cualquier sistema nuevo que persista algo (hambre/sueño, día-noche) es usar ese mismo contrato, no inventar otro nombre.
 
 **Por qué importa el cableado manual:** cada sistema nuevo que necesite persistir requiere acordarse de sumarlo a mano en `save_manager.gd`. Dos bugs reales pasaron por esto: la parcela que no crecía al recargar (existían dos copias de la lógica de restaurar, una vieja y muerta en `world.gd`, desincronizada de la real en `CropManager`), y el inventario que **directamente nunca se guardaba** — cada reinicio volvía a la semilla inicial hardcodeada, perdiendo cualquier semilla extra, la regadera comprada, o comida cosechada.
 
-**Mejora pendiente (parcial):** migrar `Economy`/`build_system`/`world` al mismo contrato `get_save_data()`/`apply_save_data()` que ya usa `Inventory`, y que `SaveManager` mantenga una lista corta de sistemas registrados en vez de llamar a métodos con nombres distintos por sistema. No es urgente romper lo que ya funciona, pero cualquier sistema *nuevo* de acá en adelante debería nacer con el contrato nuevo directamente.
+**Mejora pendiente (parcial):** migrar `Economy`/`build_system`/`world` al mismo contrato `get_save_data()`/`apply_save_data()` que ya usa `Hotbar`, y que `SaveManager` mantenga una lista corta de sistemas registrados en vez de llamar a métodos con nombres distintos por sistema. No es urgente romper lo que ya funciona, pero cualquier sistema *nuevo* de acá en adelante debería nacer con el contrato nuevo directamente.

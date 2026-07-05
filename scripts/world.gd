@@ -19,7 +19,7 @@ func _ready() -> void:
 
 	# restore visuals for any placed garden plots loaded by the build system
 	_restore_plots_visuals()
-	Inventory.inventory_changed.connect(_on_inventory_changed)
+	Hotbar.inventory_changed.connect(_on_inventory_changed)
 	_on_inventory_changed()
 
 func _restore_plots_visuals() -> void:
@@ -117,7 +117,7 @@ func _handle_interact() -> void:
 			var target2: Node = collider
 			if target2.has_meta("piece_category") and target2.get_meta("piece_category", "") == "garden":
 				print("[crop] hit garden piece directly: %s -> cosechar si está lista" % target2.name)
-				CropManager.harvest_plot(target2, Inventory)
+				CropManager.harvest_plot(target2, Hotbar)
 				return
 			if target2 is Area3D and target2.is_in_group("crop_slot"):
 				print("[crop] hit crop slot directly")
@@ -145,9 +145,9 @@ func _handle_tool_use_click() -> void:
 	if build_system and build_system.equipped_category != "none":
 		return
 
-	var equipped_id: String = Inventory.get_selected_item().get("id", "")
+	var equipped_id: String = Hotbar.get_selected_item().get("id", "")
 	if PlayerNeeds.try_eat(equipped_id):
-		Inventory.remove_item(Inventory.selected_slot)
+		Hotbar.remove_item(Hotbar.selected_slot)
 		print("[needs] comió %s, hambre=%.0f" % [equipped_id, PlayerNeeds.hunger])
 		return
 
@@ -159,17 +159,17 @@ func _handle_tool_use_click() -> void:
 		var player := get_tree().get_first_node_in_group("player")
 		var tool_id: String = player.current_tool_id if player else ""
 		print("[crop] click en %s con tool=%s" % [collider.name, tool_id])
-		CropManager.use_tool(collider, tool_id, Inventory)
+		CropManager.use_tool(collider, tool_id, Hotbar)
 
 func _interact_with_slot(slot: Area3D) -> void:
 	var state: String = slot.get_meta("crop_state", "empty")
 	var player: Node = get_tree().get_first_node_in_group("player")
 	var tool_id: String = player.current_tool_id if player else ""
-	print("[crop] slot %s state=%s tool=%s selected_slot=%d" % [slot.name, state, tool_id, Inventory.selected_slot])
+	print("[crop] slot %s state=%s tool=%s selected_slot=%d" % [slot.name, state, tool_id, Hotbar.selected_slot])
 
 	if state == "empty" and tool_id == "seed":
 		_set_slot_state(slot, "growing", Time.get_ticks_msec() / 1000.0)
-		Inventory.remove_item(Inventory.selected_slot)
+		Hotbar.remove_item(Hotbar.selected_slot)
 		print("[crop] planted")
 	elif state == "ready":
 		_set_slot_state(slot, "empty")

@@ -127,7 +127,7 @@ func _on_buy_pressed(item_id: String, price: int) -> void:
 func _on_buy_consumable_pressed(price: int, grants_item: Dictionary) -> void:
 	if not Economy.spend_money(price):
 		return
-	Inventory.add_item(grants_item["id"], grants_item["name"])
+	Backpack.add_item(grants_item["id"], grants_item["name"])
 	refresh()
 
 func _on_save_pressed() -> void:

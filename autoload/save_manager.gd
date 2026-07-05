@@ -32,7 +32,8 @@ func save_game() -> void:
 		"purchased_items": Economy.purchased_items,
 		"pieces": build_system.serialize_pieces() if build_system else [],
 		"crops": world.serialize_crops() if world and world.has_method("serialize_crops") else [],
-		"inventory": Inventory.get_save_data(),
+		"inventory": Hotbar.get_save_data(),
+		"backpack": Backpack.get_save_data(),
 		"player_needs": PlayerNeeds.get_save_data(),
 	}
 	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
@@ -55,7 +56,8 @@ func _print_save_summary(data: Dictionary) -> void:
 	print("[save] ---- partida guardada ----")
 	print("[save] money=%d" % data["money"])
 	print("[save] purchased_items=%s" % [data["purchased_items"].keys()])
-	print("[save] inventory items=%s selected_slot=%s" % [data["inventory"]["items"], data["inventory"]["selected_slot"]])
+	print("[save] hotbar items=%s selected_slot=%s" % [data["inventory"]["items"], data["inventory"]["selected_slot"]])
+	print("[save] backpack items=%s" % [data["backpack"]["items"]])
 	print("[save] player_needs=%s" % [data["player_needs"]])
 	print("[save] crops guardados=%d" % data["crops"].size())
 	print("[save] pieces guardadas=%d -> %s" % [pieces.size(), by_category])
@@ -77,7 +79,9 @@ func load_game() -> void:
 	# semilla inicial) si el archivo de guardado es viejo y todavía no tiene
 	# esta clave — si la tiene, se restaura tal cual (aunque esté vacía).
 	if data.has("inventory"):
-		Inventory.apply_save_data(data["inventory"])
+		Hotbar.apply_save_data(data["inventory"])
+	if data.has("backpack"):
+		Backpack.apply_save_data(data["backpack"])
 	if data.has("player_needs"):
 		PlayerNeeds.apply_save_data(data["player_needs"])
 
@@ -100,7 +104,8 @@ func reset_game() -> void:
 	if FileAccess.file_exists(SAVE_PATH):
 		DirAccess.remove_absolute(SAVE_PATH)
 	Economy.reset()
-	Inventory.reset()
+	Hotbar.reset()
+	Backpack.reset()
 	PlayerNeeds.reset()
 	print("[save] partida reiniciada, recargando escena")
 	get_tree().reload_current_scene()

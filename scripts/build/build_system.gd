@@ -69,6 +69,7 @@ const CATALOG := {
 @onready var catalog_menu: Control = $BuildMenuLayer/Catalog
 @onready var work_system: Node = get_node("../WorkSystem")
 @onready var phone_system: Node = get_node("../PhoneSystem")
+@onready var inventory_system: Node = get_node("../InventorySystem")
 
 var equipped_category: String = "none"
 var equipped_variant: String = ""
@@ -125,7 +126,7 @@ func _piece_scene(category: String, variant: String) -> PackedScene:
 	return CATALOG[category]["variants"][variant]["scene"]
 
 func _unhandled_input(event: InputEvent) -> void:
-	if work_system.is_working or phone_system.is_open:
+	if work_system.is_working or phone_system.is_open or inventory_system.is_open:
 		return
 	if event.is_action_pressed("ui_cancel"):
 		if menu_open:
@@ -288,7 +289,7 @@ func _refund_piece_contents(piece: Node) -> void:
 	if piece.get_meta("piece_category", "") == "garden":
 		var state: String = piece.get_meta("crop_state", "empty")
 		if state == "growing" or state == "ready":
-			Inventory.add_item("seed", "Semilla de Zanahoria")
+			Backpack.add_item("seed", "Semilla de Zanahoria")
 		CropManager.unregister_plantable(piece)
 
 ## Usado por SaveManager (autoload/save_manager.gd) para persistir lo construido.
@@ -398,7 +399,7 @@ func _snap_wall(point: Vector3) -> Dictionary:
 		return {"position": Vector3(edge_x, y, edge_z), "rotation": rot}
 
 func _process(_delta: float) -> void:
-	if menu_open or work_system.is_working or phone_system.is_open:
+	if menu_open or work_system.is_working or phone_system.is_open or inventory_system.is_open:
 		return
 
 	if equipped_category == "demolish":
