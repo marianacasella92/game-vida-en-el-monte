@@ -64,6 +64,34 @@ const CATALOG := {
 	},
 }
 
+## ---------------------------------------------------------------------
+## CHECKLIST — cómo agregar una categoría nueva de pieza colocable, sin
+## repetir los bugs ya encontrados y resueltos (ver docs/ESTANDARES_TECNICOS.md
+## para la historia completa de cada uno):
+##
+## 1. Sumarla al CATALOG de arriba (categoría + variante + su .tscn).
+## 2. Medir el tamaño REAL del mesh antes de ponerle un BoxShape3D a ojo — la
+##    caja de colisión tiene que cubrir lo que se ve, ni más ni menos (bug
+##    real: la cama tenía una caja a mano de menos de la mitad de su tamaño
+##    real, y sobresalía/atravesaba paredes sin que nada se diera cuenta).
+## 3. ¿Su módulo real no coincide con grid_size (2x2)? — como el techo,
+##    modelado en 2x1 — necesita su propia función de snap (ver _snap_roof),
+##    no alcanza con usar _snap_flat.
+## 4. ¿Se puede rotar con `build_rotate`? Sumarla a ROTATABLE_CATEGORIES (ver
+##    abajo) — es la única lista que hace falta tocar, tanto el input como el
+##    ángulo final la leen de ahí.
+## 5. ¿Es mobiliario interior (no pared/piso/techo/huerta)? Sumarla a
+##    FURNITURE_CATEGORIES (ver abajo) — así comparte balde de ocupación con
+##    el resto del mobiliario (no se superponen entre sí) Y queda cubierta
+##    automáticamente por _overlaps_wall(), que ya tolera quedar apoyada
+##    contra una pared (WALL_OVERLAP_MARGIN) sin dejar pasar una intrusión de
+##    verdad.
+##
+## Ninguno de estos pasos requiere tocar a mano _process()/_unhandled_input()
+## por cada categoría nueva — por eso existen estas listas en vez de cadenas
+## de `if equipped_category == "..."` repetidas.
+## ---------------------------------------------------------------------
+
 ## Categorías que se pueden rotar 90° con `build_rotate` mientras están
 ## equipadas — única fuente de verdad para esta lista. Bug real (07/07/2026):
 ## la cama nunca rotaba porque "bed" faltaba de dos chequeos `or` idénticos
@@ -76,7 +104,8 @@ const ROTATABLE_CATEGORIES := ["roof", "desk", "decor", "bed"]
 ## ocupación entre sí (no compiten contra pared/piso/techo/huerta — esas
 ## siguen por categoría separada, se apoyan unas sobre otras a propósito —
 ## pero sí compiten entre ellas: no debería poder superponerse un escritorio
-## adentro de una cama, por ejemplo).
+## adentro de una cama, por ejemplo) y quedan cubiertas por el chequeo de
+## _overlaps_wall() (ver más abajo, junto con WALL_OVERLAP_MARGIN).
 ##
 ## Nota: la reserva de slot sigue siendo de UN punto por pieza, no de la
 ## huella real — la cama (~3.9m de largo) pisa más de una celda de grid_size,

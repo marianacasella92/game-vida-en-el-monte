@@ -103,6 +103,19 @@ Convención de controles: **click izquierdo** es "usar lo que tengo equipado en 
 
 **Mejora pendiente (parcial):** migrar `Economy`/`build_system`/`world` al mismo contrato `get_save_data()`/`apply_save_data()` que ya usa `Hotbar`, y que `SaveManager` mantenga una lista corta de sistemas registrados en vez de llamar a métodos con nombres distintos por sistema. No es urgente romper lo que ya funciona, pero cualquier sistema *nuevo* de acá en adelante debería nacer con el contrato nuevo directamente.
 
+## Checklist: agregar una categoría nueva de pieza colocable (build_system.gd)
+
+Resumen rápido — el detalle y el "por qué" de cada punto está en las secciones de abajo, esto es solo el orden de pasos para no repetir los mismos bugs:
+
+1. **Sumarla al `CATALOG`** (categoría + variante + `.tscn`).
+2. **Medir el tamaño real del mesh antes de poner un `BoxShape3D` a ojo.** La caja de colisión tiene que cubrir lo que se ve, ni más ni menos — ver "Cajas de colisión estimadas a mano vs. tamaño real del mesh" más abajo. Una caja subestimada deja que el modelo visual sobresalga de su propia colisión sin que nada lo note.
+3. **¿Su módulo real coincide con `grid_size` (2×2)?** Si no (como el techo, modelado en 2×1), necesita su propia función de snap — ver "Techo: el asset está modelado en un módulo de 2×1". No asumir que todo encaja en `grid_size` solo porque pared/piso lo hacen.
+4. **¿Se puede rotar con `build_rotate`?** Sumarla a `ROTATABLE_CATEGORIES` — una sola lista, no repetir la condición en `_unhandled_input` y en `_process` por separado (ver "Categorías rotables de construcción").
+5. **¿Es mobiliario interior (no pared/piso/techo/huerta)?** Sumarla a `FURNITURE_CATEGORIES` — comparte balde de ocupación con el resto del mobiliario (no se superponen entre sí) y queda cubierta automáticamente por `_overlaps_wall()` con el margen de tolerancia contra paredes ya resuelto (ver "Cajas de colisión..." más abajo, las últimas dos entradas).
+6. **¿Tiene una abertura para caminar a través (puerta, arco)?** Necesita más de un `CollisionShape3D` (dintel + jambas), nunca una sola caja sólida — ver "Puertas: la colisión necesita un hueco real".
+
+El mismo checklist vive también como comentario en `build_system.gd`, arriba de `ROTATABLE_CATEGORIES`/`FURNITURE_CATEGORIES`.
+
 ## Colocación en construcción: validar por slot de grilla, no por choque físico de formas
 
 **Historia (06/07/2026):** la validez de colocar una pieza (`build_system.gd`) arrancó como un `intersect_shape()` contra la caja de colisión real de cada pieza. Se fue parcheando tres veces seguidas para casos distintos — bloqueaba pared-sobre-piso (categorías distintas que están pensadas para tocarse), después se descubrió que ignoraba el offset del `CollisionShape3D` (pared/techos con offsets grandes probaban colisión en el lugar equivocado del mundo), y después que dos paredes en ángulo recto cerrando una esquina de habitación **siempre** se solapan un poco de verdad (cada una asoma la mitad de su espesor sobre el extremo de la otra). Cada parche arregló su caso pero el enfoque de fondo estaba mal: la geometría real de cada mesh (cajas con formas y offsets distintos por pieza) no tiene por qué reflejar qué combinaciones de piezas son válidas — eso es una decisión de diseño (qué categorías pueden compartir un lugar), no un hecho físico.
