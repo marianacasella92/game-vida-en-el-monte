@@ -103,6 +103,38 @@ Convención de controles: **click izquierdo** es "usar lo que tengo equipado en 
 
 **Mejora pendiente (parcial):** migrar `Economy`/`build_system`/`world` al mismo contrato `get_save_data()`/`apply_save_data()` que ya usa `Hotbar`, y que `SaveManager` mantenga una lista corta de sistemas registrados en vez de llamar a métodos con nombres distintos por sistema. No es urgente romper lo que ya funciona, pero cualquier sistema *nuevo* de acá en adelante debería nacer con el contrato nuevo directamente.
 
+## Colocación en construcción: validar por slot de grilla, no por choque físico de formas
+
+**Historia (06/07/2026):** la validez de colocar una pieza (`build_system.gd`) arrancó como un `intersect_shape()` contra la caja de colisión real de cada pieza. Se fue parcheando tres veces seguidas para casos distintos — bloqueaba pared-sobre-piso (categorías distintas que están pensadas para tocarse), después se descubrió que ignoraba el offset del `CollisionShape3D` (pared/techos con offsets grandes probaban colisión en el lugar equivocado del mundo), y después que dos paredes en ángulo recto cerrando una esquina de habitación **siempre** se solapan un poco de verdad (cada una asoma la mitad de su espesor sobre el extremo de la otra). Cada parche arregló su caso pero el enfoque de fondo estaba mal: la geometría real de cada mesh (cajas con formas y offsets distintos por pieza) no tiene por qué reflejar qué combinaciones de piezas son válidas — eso es una decisión de diseño (qué categorías pueden compartir un lugar), no un hecho físico.
+
+**Solución actual:** `occupied_slots` — un diccionario `category (String) -> {Vector3i -> true}`. La posición ya sale snappeada a la grilla (`_snap_flat`/`_snap_wall`, ver `_ray_plane_point` para el techo más abajo), así que "misma categoría + misma posición cuantizada" alcanza para saber si un lugar está ocupado, sin mirar la forma de colisión de nadie. `_slot_taken()`/`_register_slot()`/`_unregister_slot()` son los únicos puntos de contacto — se llaman desde `_process()` (validar el fantasma), `_place_piece()`, `_demolish_hovered()` y `load_pieces()`. Es la misma idea que ya usaba `floor_cells` para pisos, generalizada a todas las categorías.
+
+**Por qué esto no vuelve a romperse con una pieza nueva:** categorías distintas nunca compiten por el mismo slot (conviven en el mismo lugar a propósito — pared sobre piso, techo sobre pared), y dentro de la misma categoría, dos piezas en la posición exacta sí compiten (dos pisos en la misma celda, dos paredes en el mismo borde) — sin depender de cuán rara sea la caja de colisión de esa pieza en particular.
+
+**Regla:** cualquier categoría nueva que registre piezas tiene que pasar por `_register_slot()`/`_unregister_slot()` en los mismos cuatro puntos de arriba. No agregar de nuevo un chequeo de colisión física para decidir si una pieza "entra" — eso fue exactamente lo que se sacó.
+
+## Puertas: la colisión necesita un hueco real, no una caja sólida heredada de la pared
+
+`wall_door.tscn` originalmente copiaba la misma `BoxShape3D` sólida de `wall.tscn` — el modelo 3D tenía el agujero de la puerta, pero la física bloqueaba igual que una pared entera (bug real: jugadora encerrada en su propia casa).
+
+**Regla:** una pieza con una abertura pensada para caminar a través necesita **más de una `CollisionShape3D`** (dintel arriba + jambas a los costados), dejando el hueco de la abertura sin ninguna forma de colisión — nunca una sola caja que cubra todo el rectángulo de la pared. Ver `wall_door.tscn`: dintel (`Vector3(2, 0.8, 0.4)`, cubre de y=2.2 a y=3) + dos jambas (`Vector3(0.5, 3, 0.4)` cada una, a los costados), dejando libre un hueco de 1m de ancho por 2.2m de alto (la cápsula del jugador mide 1.8m, ver `player.tscn`).
+
+**Por qué importa para el fantasma de construcción:** `build_system.gd::_spawn_ghost()` tiene que deshabilitar **todas** las `CollisionShape3D` hijas directas de la pieza (`_find_direct_collision_shapes()`), no solo buscar una por nombre fijo (`get_node("CollisionShape3D")`) — si una pieza nueva tiene varias colisiones (como la puerta), quedarse con una sola dejaría al fantasma bloqueando físicamente al jugador mientras lo tiene equipado, con las demás formas todavía activas.
+
+## Techo: la posición se calcula con un plano, no con un raycast físico
+
+`_process()` decidía dónde ubicar el fantasma tirando un raycast físico y snappeando lo que golpeara (`_cast_build_ray()`), igual para las cuatro categorías. Funciona para pared/piso/escritorio porque siempre apuntás a algo sólido (el piso, una pared existente), pero se rompe para el techo: la celda del medio de una cumbrera sin terminar tiene **cielo abierto arriba y nada sólido dentro de `build_range`** — sin nada contra qué chocar, `in_range` daba `false` sin importar el ángulo (bug real 06/07/2026: "ninguna orientación encaja" al cerrar la fila del medio de un techo a dos aguas). Mirando desde otro ángulo, el rayo a veces pegaba primero contra el Faldón vecino (que abomba un poco hacia el medio) y snappeaba a esa celda ya ocupada, en vez de a la vacía.
+
+**Regla:** el techo se coloca en un plano horizontal fijo (`wall_height`), así que su posición se calcula con `_ray_plane_point()` — intersección matemática del rayo de la cámara con ese plano — en vez de depender de que el rayo choque contra algo. Cualquier categoría futura que viva en un plano fijo en vez de "sobre lo último que tocaste" (ej. un segundo piso a una altura fija) debería usar el mismo patrón, no `_cast_build_ray()`.
+
+## Techo: el asset está modelado en un módulo de 2×1, no 2×2 — necesita su propia grilla
+
+Bug real (06/07/2026, reportado como "los assets del techo no cubren el slot"): cada pieza de techo del pack "Medieval Village MegaKit" es literalmente un `Roof_Wooden_2x1*.gltf` — el nombre del archivo lo dice: están modeladas en un módulo de 2×1, mientras que pared/piso/escritorio/decoración usan un módulo de 2×2 (`grid_size`). Colocar techo con la misma grilla de 2×2 que todo lo demás dejaba cada pieza cubriendo solo la mitad de su celda — el hueco no era un bug de colocación, era un desfase real entre el tamaño del módulo del asset y el tamaño de celda que usa el resto del kit.
+
+**Regla:** `_snap_roof()` (no confundir con `_snap_flat()`, que usan pared/piso/escritorio) snappea con `grid_size` en el eje largo del mesh (el "2", a lo largo de la cumbrera) y con `grid_size / 2.0` en el eje corto (el "1", a lo largo de la pendiente) — así una celda de piso de 2×2 necesita **dos** piezas de techo, una al lado de la otra en el eje corto, para quedar cubierta entera. Qué eje del mundo es cuál depende de `rotation_steps` (par = eje largo en X, impar = eje largo en Z) — mismo criterio que la dimensión larga de `wall.tscn`, que también corre en su X local.
+
+**Si se agrega un asset nuevo con un módulo que no sea 2×2:** revisar el nombre del archivo/las dimensiones reales del modelo antes de asumir que encaja en `grid_size` — este bug pasó desapercibido varias sesiones porque nadie miró el nombre del `.gltf` hasta que el hueco se hizo evidente jugando.
+
 ## Visuales de debug: pasan por `DevMode`, nunca hardcodeados a siempre-visible
 
 Cualquier visual que exista solo para verificar que la lógica funciona durante el desarrollo (ej. el `Label3D` "StateLabel" de `CropManager` mostrando el estado interno de una parcela) **no puede quedar visible incondicionalmente** — rompe la regla de inmersión/realismo del PXD (`docs/GameDesign/PXD_Diseno_HUD_UI_v1.md`, sección 1.1): en el juego final solo debe verse el prompt de interacción, nunca texto de debug flotando sobre objetos del mundo.

@@ -76,12 +76,25 @@ var equipped_category: String = "none"
 var equipped_variant: String = ""
 var ghost: StaticBody3D
 var ghost_meshes: Array[MeshInstance3D] = []
-var ghost_shape: Shape3D
 var ghost_valid: bool = false
 var menu_open: bool = false
 var manual_flip: bool = false
 var rotation_steps: int = 0
 var floor_cells: Dictionary = {}
+
+## category (String) -> Dictionary de Vector3i (posición cuantizada) -> true.
+## Reemplaza el viejo chequeo de "choca la forma de colisión de la pieza
+## contra la de otra ya puesta": esa prueba dependía de la geometría exacta de
+## cada mesh (cada pared/techo tiene una caja de colisión distinta, con
+## offsets distintos) y se rompía cada vez que dos categorías o dos piezas
+## vecinas estaban pensadas para tocarse a propósito (pared sobre el borde de
+## un piso, dos paredes cerrando una esquina, techos con offsets raros). Un
+## slot de grilla por categoría es la misma idea que ya usaba `floor_cells`
+## para pisos, generalizada a todas las categorías: la posición ya sale
+## snappeada a la grilla (_snap_flat/_snap_wall/_snap_roof), así que "misma
+## categoría + misma posición redondeada" alcanza para saber si el lugar está
+## ocupado, sin importar la forma real de cada pieza.
+var occupied_slots: Dictionary = {}
 
 ## "Destruir" es una herramienta más del catálogo (como equipar una pared),
 ## no un click derecho suelto: hay que elegirla a propósito en el menú (G).
@@ -187,7 +200,6 @@ func _exit_build_mode() -> void:
 		ghost.queue_free()
 		ghost = null
 		ghost_meshes = []
-		ghost_shape = null
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	catalog_menu.close()
 
@@ -205,6 +217,33 @@ func _find_mesh_instances(node: Node) -> Array[MeshInstance3D]:
 		found.append_array(_find_mesh_instances(child))
 	return found
 
+## Solo las CollisionShape3D colgadas directo de la pieza (la colisión física
+## del StaticBody3D) — no baja a buscar dentro de nodos como "InteractionArea"
+## (Area3D de desk.tscn/bed.tscn), que tienen su propia CollisionShape3D con
+## otro propósito y no deberían tocarse acá.
+func _find_direct_collision_shapes(node: Node) -> Array[CollisionShape3D]:
+	var found: Array[CollisionShape3D] = []
+	for child in node.get_children():
+		if child is CollisionShape3D:
+			found.append(child)
+	return found
+
+func _slot_key(pos: Vector3) -> Vector3i:
+	return Vector3i(int(round(pos.x * 100.0)), int(round(pos.y * 100.0)), int(round(pos.z * 100.0)))
+
+func _slot_taken(category: String, pos: Vector3) -> bool:
+	var cells: Dictionary = occupied_slots.get(category, {})
+	return cells.has(_slot_key(pos))
+
+func _register_slot(category: String, pos: Vector3) -> void:
+	if not occupied_slots.has(category):
+		occupied_slots[category] = {}
+	occupied_slots[category][_slot_key(pos)] = true
+
+func _unregister_slot(category: String, pos: Vector3) -> void:
+	if occupied_slots.has(category):
+		occupied_slots[category].erase(_slot_key(pos))
+
 func _spawn_ghost() -> void:
 	_clear_demolish_highlight()
 
@@ -212,7 +251,6 @@ func _spawn_ghost() -> void:
 		ghost.queue_free()
 		ghost = null
 		ghost_meshes = []
-		ghost_shape = null
 
 	manual_flip = false
 	rotation_steps = 0
@@ -232,9 +270,11 @@ func _spawn_ghost() -> void:
 	for mesh in ghost_meshes:
 		mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
-	var collision: CollisionShape3D = ghost.get_node("CollisionShape3D")
-	ghost_shape = collision.shape
-	collision.disabled = true
+	# deshabilitar TODAS las colisiones de la pieza (algunas, como la puerta,
+	# tienen más de una CollisionShape3D — dintel + jambas — para dejar un
+	# hueco real por donde caminar)
+	for collision in _find_direct_collision_shapes(ghost):
+		collision.disabled = true
 	ghost.collision_layer = 0
 	ghost.collision_mask = 0
 
@@ -251,6 +291,7 @@ func _place_piece() -> void:
 	piece.global_rotation = ghost.global_rotation
 	print("[build] colocada %s/%s en %s — en grupo build_piece=%s" % [equipped_category, equipped_variant, piece.global_position, piece.is_in_group("build_piece")])
 
+	_register_slot(equipped_category, piece.global_position)
 	if equipped_category == "floor":
 		floor_cells[_cell_key(piece.global_position.x, piece.global_position.z)] = true
 	elif equipped_category == "garden":
@@ -286,7 +327,9 @@ func _demolish_hovered() -> void:
 	var piece := demolish_hover
 	_clear_demolish_highlight()
 	_refund_piece_contents(piece)
-	if piece.get_meta("piece_category", "") == "floor":
+	var category: String = piece.get_meta("piece_category", "")
+	_unregister_slot(category, piece.global_position)
+	if category == "floor":
 		floor_cells.erase(_cell_key(piece.global_position.x, piece.global_position.z))
 	piece.queue_free()
 
@@ -324,6 +367,7 @@ func clear_pieces() -> void:
 	for piece in get_tree().get_nodes_in_group("build_piece"):
 		piece.queue_free()
 	floor_cells.clear()
+	occupied_slots.clear()
 
 func load_pieces(data: Array) -> void:
 	for entry in data:
@@ -337,6 +381,7 @@ func load_pieces(data: Array) -> void:
 		piece.global_position = Vector3(pos[0], pos[1], pos[2])
 		piece.global_rotation = Vector3(rot[0], rot[1], rot[2])
 
+		_register_slot(category, piece.global_position)
 		if category == "floor":
 			floor_cells[_cell_key(piece.global_position.x, piece.global_position.z)] = true
 
@@ -364,10 +409,28 @@ func _snap_flat(point: Vector3) -> Vector3:
 		round(point.z / grid_size) * grid_size
 	)
 
+## Las piezas de techo (asset pack "Medieval Village MegaKit") están
+## modeladas en un módulo de 2×1, no 2×2 como pared/piso — el nombre de cada
+## .gltf lo dice explícito (Roof_Wooden_2x1*.gltf). El eje largo (2, a lo
+## largo de la cumbrera) mide lo mismo que grid_size y coincide con el ancho
+## de una pared; el eje corto (1, a lo largo de la pendiente, de la cumbrera
+## al alero) mide la mitad. Bug real (06/07/2026): antes se snappeaba a la
+## misma grilla de 2×2 que todo lo demás, así que cada pieza de techo cubría
+## solo la mitad de la celda que le tocaba — siempre quedaba un hueco.
+##
+## Qué eje del mundo es "largo" y cuál es "corto" depende de la rotación
+## actual (rotation_steps): en 0°/180° el eje largo del mesh mira al eje X
+## del mundo (mismo criterio que wall.tscn, cuya dimensión larga también
+## corre en su X local); rotado 90°/270° se invierte.
 func _snap_roof(point: Vector3) -> Vector3:
-	var flat: Vector3 = _snap_flat(point)
-	flat.y = wall_height
-	return flat
+	var long_axis_is_x: bool = rotation_steps % 2 == 0
+	var x_size: float = grid_size if long_axis_is_x else grid_size / 2.0
+	var z_size: float = grid_size / 2.0 if long_axis_is_x else grid_size
+	return Vector3(
+		round(point.x / x_size) * x_size,
+		wall_height,
+		round(point.z / z_size) * z_size
+	)
 
 func _cell_has_floor(x: float, z: float) -> bool:
 	return floor_cells.has(_cell_key(x, z))
@@ -417,43 +480,57 @@ func _process(_delta: float) -> void:
 	if not ghost:
 		return
 
-	var result := _cast_build_ray()
-	var target_point: Vector3 = result.position if result else _build_ray_target()
-	var in_range: bool = not result.is_empty()
-
 	var snapped: Vector3
 	var rot_y: float
+	var in_range: bool
 
-	if equipped_category == "wall":
-		var placement: Dictionary = _snap_wall(target_point)
-		snapped = placement["position"]
-		rot_y = placement["rotation"]
-	elif equipped_category == "roof":
-		snapped = _snap_roof(target_point)
-		rot_y = rotation_steps * (PI / 2.0)
-	elif equipped_category == "desk" or equipped_category == "decor":
-		snapped = _snap_flat(target_point)
+	if equipped_category == "roof":
+		# El techo vive en un plano horizontal fijo (wall_height), no en lo
+		# que golpee un raycast físico: apuntar al hueco de una cumbrera sin
+		# terminar (cielo abierto arriba, o el Faldón vecino tapando la línea
+		# de visión) no tiene nada sólido para chocar dentro de build_range,
+		# así que depender de _cast_build_ray() dejaba esa celda imposible de
+		# colocar sin importar el ángulo. Acá se interseca matemáticamente el
+		# rayo de la cámara con el plano y=wall_height en vez de tirar un
+		# raycast físico.
+		var plane_point: Variant = _ray_plane_point(wall_height)
+		in_range = plane_point != null
+		snapped = _snap_roof(plane_point) if in_range else ghost.global_position
 		rot_y = rotation_steps * (PI / 2.0)
 	else:
-		snapped = _snap_flat(target_point)
-		rot_y = 0.0
+		var result := _cast_build_ray()
+		var target_point: Vector3 = result.position if result else _build_ray_target()
+		in_range = not result.is_empty()
+
+		if equipped_category == "wall":
+			var placement: Dictionary = _snap_wall(target_point)
+			snapped = placement["position"]
+			rot_y = placement["rotation"]
+		elif equipped_category == "desk" or equipped_category == "decor":
+			snapped = _snap_flat(target_point)
+			rot_y = rotation_steps * (PI / 2.0)
+		else:
+			snapped = _snap_flat(target_point)
+			rot_y = 0.0
 
 	ghost.global_position = snapped
 	ghost.global_rotation = Vector3(0, rot_y, 0)
-	ghost_valid = in_range and not _has_overlap(snapped)
+	ghost_valid = in_range and not _slot_taken(equipped_category, snapped)
 	var tint: StandardMaterial3D = valid_material if ghost_valid else invalid_material
 	for mesh in ghost_meshes:
 		mesh.material_override = tint
 
-func _has_overlap(at: Vector3) -> bool:
-	var space_state := get_world_3d().direct_space_state
-	var shape_query := PhysicsShapeQueryParameters3D.new()
-	shape_query.shape = ghost_shape
-	shape_query.transform = Transform3D(ghost.global_transform.basis, at)
-	shape_query.exclude = [ghost.get_rid()]
-
-	for hit in space_state.intersect_shape(shape_query):
-		var collider: Object = hit.get("collider")
-		if collider and collider.is_in_group("build_piece"):
-			return true
-	return false
+## Intersección del rayo de la cámara con el plano horizontal y=plane_y,
+## calculada con matemática pura (no un raycast físico) — ver por qué en el
+## comentario de más arriba, en el branch de "roof". Devuelve null si el rayo
+## no cruza ese plano dentro de build_range (mirando de costado/para abajo
+## cuando el plano queda arriba, por ejemplo, o demasiado lejos).
+func _ray_plane_point(plane_y: float) -> Variant:
+	var origin: Vector3 = camera.global_position
+	var direction: Vector3 = -camera.global_transform.basis.z
+	if abs(direction.y) < 0.001:
+		return null
+	var t: float = (plane_y - origin.y) / direction.y
+	if t <= 0.0 or t > build_range:
+		return null
+	return origin + direction * t
