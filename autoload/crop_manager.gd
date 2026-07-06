@@ -43,6 +43,20 @@ func _ready() -> void:
 	for piece in get_tree().get_nodes_in_group("build_piece"):
 		if piece.has_meta("piece_category") and piece.get_meta("piece_category", "") == "garden":
 			register_plantable(piece)
+	DevMode.toggled.connect(_on_dev_mode_toggled)
+
+## StateLabel es instrumentación de desarrollo (ver PXD_Diseno_HUD_UI_v1.md
+## 1.1): en el juego final no debe verse texto de debug flotando sobre las
+## parcelas, solo el prompt de interacción. Se sigue creando/actualizando
+## siempre (para no complicar el resto del código con chequeos), pero queda
+## oculto salvo que DevMode.enabled esté prendido.
+func _on_dev_mode_toggled(enabled: bool) -> void:
+	for plot in plantables:
+		if not is_instance_valid(plot):
+			continue
+		var label: Label3D = plot.get_node_or_null("StateLabel")
+		if label:
+			label.visible = enabled
 
 func register_plantable(node: Node) -> void:
 	if plantables.has(node):
@@ -147,6 +161,7 @@ func set_plot_state(plot: Node, state: String, started_at: float = 0.0) -> void:
 		label.name = "StateLabel"
 		label.position = Vector3(0, 0.6, 0)
 		plot.add_child(label)
+	label.visible = DevMode.enabled
 	match state:
 		"empty":
 			label.text = "Vacío"
@@ -160,6 +175,7 @@ func set_plot_state(plot: Node, state: String, started_at: float = 0.0) -> void:
 func _update_growing_label(plot: Node, is_watered: bool) -> void:
 	var label: Label3D = plot.get_node_or_null("StateLabel")
 	if label:
+		label.visible = DevMode.enabled
 		label.text = "Creciendo" if is_watered else "Necesita agua"
 
 ## stage -1 = nada (vacío), 0 = montoncito de tierra recién plantado, 1..N = etapas de GROWTH_STAGE_SCENES

@@ -18,6 +18,12 @@ Este documento traduce la "Filosofía de la interfaz" del PXD a especificaciones
 - Prohibido: pixel art, cartoon, interfaces infantiles, HUD recargados, colores vívidos en la capa de interfaz.
 - Los colores vívidos y realistas quedan reservados exclusivamente al mundo 3D (inmersión), nunca a la capa de UI.
 
+## 1.1 Regla de inmersión/realismo (aplica a todo el juego, no solo al HUD)
+
+Todo tiene que sentirse lo más inmersivo y realista posible. Esto es lo que justifica que el HUD sea chico, que no estorbe, y que aparezca solo cuando aporta valor (ej. cerca de un objeto interactuable) — es la misma lógica por la que el celular (sección 5) se diseña con el realismo de un dispositivo real en vez de heredar el lenguaje visual del HUD.
+
+Consecuencia concreta: **ningún texto de debug/verificación queda en el juego final.** Sobre un objeto del mundo (ej. una parcela de cultivo) nunca debe verse un texto flotante permanente indicando su estado interno ("Vacío", "Creciendo", "Listo", etc.) — eso es instrumentación de desarrollo, no UI de producto. Lo único que debe aparecer al acercarse a algo interactuable es el prompt de tecla dinámica (sección 3), igual que en cualquier otra interacción del mundo.
+
 ---
 
 # 2. HUD de vitales (siempre visible en el mundo)
@@ -150,7 +156,7 @@ Regla clara: **el tratamiento monocromático/minimalista aplica al HUD del juego
 
 - Tecla de apertura: **`P`** (provisorio — a revisar más adelante con alguien especializado en diseño de controles/keybinding antes de cerrarlo definitivo).
 - Al presionar la tecla: se anima la mano del personaje bajando y "agarrando" el celular, que aparece frente a cámara.
-- Referencia de framing: **PDA de Subnautica** — el dispositivo ocupa el centro/derecha del encuadre, el guante/mano que lo sostiene aparece parcialmente en el borde inferior-izquierdo de la pantalla, el mundo de fondo queda visible pero fuera de foco (no se oscurece, no se pausa a negro — mismo criterio ya definido en 5.3 de la versión anterior de este documento).
+- Referencia de framing: **PDA de Subnautica** — el dispositivo ocupa el centro/derecha del encuadre, el guante/mano que lo sostiene aparece parcialmente en el borde inferior-izquierdo de la pantalla, el mundo de fondo queda visible pero fuera de foco (no se oscurece, no se pausa a negro — mismo criterio definido para pantallas modales en la sección 6).
 - Al cerrar (misma tecla o `Esc`): animación inversa, la mano baja el celular y la cámara vuelve a la vista normal.
 
 ## 5.3 Pantalla de inicio (Home)
@@ -231,9 +237,10 @@ Se juntaron varias referencias de interfaces de celular realistas (vía Magnific
 # 7. Controles y navegación
 
 - **Apertura de inventario:** tecla `I`.
-- **Apertura de celular:** tecla `P` (provisoria, ver sección 5.5).
+- **Apertura de celular:** tecla `P` (provisoria, ver sección 5.6).
 - **Navegación principal:** mouse (por ahora). El juego debe soportar también **gamepad** desde el diseño de estas pantallas — la grilla de slots y cualquier menú deben pensarse con foco navegable por D-pad/stick desde el principio, no como agregado posterior.
 
 # 8. Pendientes / próximas decisiones
 
-Sin pendientes abiertos por ahora — el ícono del contador de dinero ya fue generado y recortado (`icon_money.png`).
+- Ver sección 5.6 para los pendientes del celular (tecla de apertura provisoria, animación de mano).
+- El ícono del contador de dinero ya fue generado y recortado (`icon_money.png`).
