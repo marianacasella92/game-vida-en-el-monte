@@ -135,6 +135,18 @@ Bug real (06/07/2026, reportado como "los assets del techo no cubren el slot"): 
 
 **Si se agrega un asset nuevo con un módulo que no sea 2×2:** revisar el nombre del archivo/las dimensiones reales del modelo antes de asumir que encaja en `grid_size` — este bug pasó desapercibido varias sesiones porque nadie miró el nombre del `.gltf` hasta que el hueco se hizo evidente jugando.
 
+## Categorías rotables de construcción: una sola lista, no un `or` repetido en dos lugares
+
+Bug real (07/07/2026): la cama nunca rotaba con `build_rotate`. `"bed"` faltaba de dos chequeos idénticos `equipped_category == "roof" or equipped_category == "desk" or equipped_category == "decor"` — uno en `_unhandled_input` (que incrementa `rotation_steps`) y otro en `_process` (que aplica `rotation_steps` al ángulo final). Se agregó la categoría a un `or` y se olvidó el otro.
+
+**Regla:** cualquier lista de categorías que determina un comportamiento transversal (qué rota, qué se puede reembolsar, qué requiere ítem comprado, etc.) vive en **una sola constante** (`ROTATABLE_CATEGORIES` en `build_system.gd`) y se consulta con `in`, nunca copiada como una cadena de `or` en cada lugar que la necesita — si se necesita en dos lugares, ya son dos lugares para desincronizar.
+
+## Cerrar ventanas (`Q`) vs. menú de pausa (`Esc`): acciones separadas a propósito
+
+Bug real (07/07/2026): "cerrar una pantalla siempre terminaba abriendo el menú de pausa". Todos los sistemas modales (celular, inventario, catálogo de construcción, sesión de trabajo) reaccionaban al mismo `ui_cancel` (Escape) que `pause_system.gd` usa para abrir/cerrar pausa. Varios de esos chequeos viven en `_process` (no en `_unhandled_input`, ver comentarios de cada script) — como `pause_system.gd` también revisa `ui_cancel` en su propio `_process`, el orden en que Godot procesa los `_process` de nodos hermanos en el mismo frame decidía si el modal ya se había cerrado (`is_open = false`) *antes* de que `pause_system` chequeara ese mismo `is_open` para decidir si abrir pausa — condición de carrera entre nodos hermanos, no un bug de lógica.
+
+**Regla:** `close_window` (tecla `Q`) es la acción dedicada para cerrar/salir de cualquier pantalla modal (`build_system.gd`, `catalog_menu.gd`, `phone_system.gd`, `inventory_system.gd`, `work_system.gd`). `ui_cancel` (Esc) quedó exclusivo de `pause_system.gd`. Ninguna categoría nueva de pantalla modal debería volver a engancharse a `ui_cancel` — si necesita cerrarse con una tecla, es `close_window`.
+
 ## Visuales de debug: pasan por `DevMode`, nunca hardcodeados a siempre-visible
 
 Cualquier visual que exista solo para verificar que la lógica funciona durante el desarrollo (ej. el `Label3D` "StateLabel" de `CropManager` mostrando el estado interno de una parcela) **no puede quedar visible incondicionalmente** — rompe la regla de inmersión/realismo del PXD (`docs/GameDesign/PXD_Diseno_HUD_UI_v1.md`, sección 1.1): en el juego final solo debe verse el prompt de interacción, nunca texto de debug flotando sobre objetos del mundo.

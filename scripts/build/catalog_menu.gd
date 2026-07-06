@@ -117,5 +117,5 @@ func _on_dim_input(event: InputEvent) -> void:
 		cancelled.emit()
 
 func _unhandled_input(event: InputEvent) -> void:
-	if visible and event.is_action_pressed("ui_cancel"):
+	if visible and event.is_action_pressed("close_window"):
 		cancelled.emit()

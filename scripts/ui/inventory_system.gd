@@ -39,9 +39,8 @@ func close_inventory() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	panel.visible = false
 
-## Se revisa en _process (no en _unhandled_input) por la misma razón que
-## documenta phone_system.gd: así la recaptura del mouse al salir no queda
-## pisada por el handler genérico de "ui_cancel" de player.gd.
+## "close_window" (Q) — ver el comentario en phone_system.gd sobre por qué
+## está separada de "ui_cancel" (Esc, exclusiva del menú de pausa).
 func _process(_delta: float) -> void:
-	if is_open and Input.is_action_just_pressed("ui_cancel"):
+	if is_open and Input.is_action_just_pressed("close_window"):
 		close_inventory()

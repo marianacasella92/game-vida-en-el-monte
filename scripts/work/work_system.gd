@@ -50,10 +50,8 @@ func stop_working() -> void:
 func _on_session_ended(_average: float, money_awarded: int) -> void:
 	Economy.add_money(money_awarded)
 
-## Se revisa en _process (no en _unhandled_input) para que este cierre de
-## sesión se procese siempre después del manejo genérico de "ui_cancel" que
-## hace player.gd (el input se despacha antes que _process en cada frame),
-## y así la recaptura del mouse al salir no quede pisada por ese handler.
+## "close_window" (Q) — ver el comentario en phone_system.gd sobre por qué
+## está separada de "ui_cancel" (Esc, exclusiva del menú de pausa).
 func _process(_delta: float) -> void:
-	if is_working and Input.is_action_just_pressed("ui_cancel"):
+	if is_working and Input.is_action_just_pressed("close_window"):
 		stop_working()

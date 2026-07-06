@@ -37,9 +37,10 @@ func close_phone() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	panel.visible = false
 
-## Se revisa en _process (no en _unhandled_input) por la misma razón que
-## documenta work_system.gd: así la recaptura del mouse al salir no queda
-## pisada por el handler genérico de "ui_cancel" de player.gd.
+## "close_window" (Q) es la tecla dedicada para cerrar cualquier pantalla
+## modal — separada de "ui_cancel" (Esc), que ahora es exclusiva del menú de
+## pausa (pause_system.gd), para que abrir/cerrar una pantalla y abrir pausa
+## nunca compitan por el mismo evento en el mismo frame.
 func _process(_delta: float) -> void:
-	if is_open and Input.is_action_just_pressed("ui_cancel"):
+	if is_open and Input.is_action_just_pressed("close_window"):
 		close_phone()

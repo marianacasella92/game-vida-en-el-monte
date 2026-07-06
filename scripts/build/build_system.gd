@@ -64,6 +64,14 @@ const CATALOG := {
 	},
 }
 
+## Categorías que se pueden rotar 90° con `build_rotate` mientras están
+## equipadas — única fuente de verdad para esta lista. Bug real (07/07/2026):
+## la cama nunca rotaba porque "bed" faltaba de dos chequeos `or` idénticos
+## por separado (uno en _unhandled_input, otro en _process) — al agregar una
+## categoría nueva que rote, sumarla acá alcanza, no hace falta tocar los dos
+## lugares que la usan.
+const ROTATABLE_CATEGORIES := ["roof", "desk", "decor", "bed"]
+
 @onready var camera: Camera3D = get_node("../Head/Camera3D")
 @onready var player: CharacterBody3D = get_parent()
 @onready var catalog_menu: Control = $BuildMenuLayer/Catalog
@@ -149,7 +157,7 @@ func is_active() -> bool:
 func _unhandled_input(event: InputEvent) -> void:
 	if work_system.is_working or phone_system.is_open or inventory_system.is_open or pause_system.is_open:
 		return
-	if event.is_action_pressed("ui_cancel"):
+	if event.is_action_pressed("close_window"):
 		if menu_open:
 			_close_catalog()
 		else:
@@ -165,7 +173,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("build_flip"):
 		manual_flip = not manual_flip
 	elif event.is_action_pressed("build_rotate"):
-		if equipped_category == "roof" or equipped_category == "desk" or equipped_category == "decor":
+		if equipped_category in ROTATABLE_CATEGORIES:
 			rotation_steps = (rotation_steps + 1) % 4
 	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		if equipped_category == "demolish":
@@ -506,7 +514,7 @@ func _process(_delta: float) -> void:
 			var placement: Dictionary = _snap_wall(target_point)
 			snapped = placement["position"]
 			rot_y = placement["rotation"]
-		elif equipped_category == "desk" or equipped_category == "decor":
+		elif equipped_category in ROTATABLE_CATEGORIES:
 			snapped = _snap_flat(target_point)
 			rot_y = rotation_steps * (PI / 2.0)
 		else:

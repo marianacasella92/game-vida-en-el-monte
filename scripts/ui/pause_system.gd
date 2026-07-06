@@ -13,10 +13,14 @@ extends Node3D
 ## ui_cancel de player.gd (que fuerza el mouse a visible sin condición), así
 ## que la recaptura del mouse al cerrar no queda pisada.
 ##
-## Se chequea build_system.is_active() (no solo menu_open): construcción ya
-## manejaba ui_cancel por su cuenta para sacar una pieza equipada de la mano
-## con el catálogo cerrado — sin este chequeo, ese mismo Escape también
-## abriría el menú de pausa encima.
+## Se chequea build_system.is_active() (no solo menu_open) para que Escape no
+## abra pausa encima de una pieza todavía equipada con el catálogo cerrado —
+## puramente una decisión de UX (no confundir con pantalla a medio construir),
+## ya no una carrera de input: cerrar/salir de cada pantalla modal usa
+## "close_window" (Q), una acción separada de "ui_cancel" (Esc), así que
+## nunca compiten por el mismo evento en el mismo frame (bug real 07/07/2026:
+## antes todas compartían Escape y cerrar una ventana terminaba abriendo
+## pausa en el mismo tecleo).
 
 var is_open: bool = false
 
