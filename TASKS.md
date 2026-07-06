@@ -128,5 +128,22 @@ Siguiendo `docs/GameDesign/PXD_Documento_Fundacional_v0.2.md` (HUD pequeño/disc
 - Árbol tecnológico completo.
 - Más de un mini-juego de trabajo.
 
+## Backlog — Bugs y mejoras varias (sesión 2026-07-06)
+Encontrados jugando con el sistema de construcción (Milestone 1, ya cerrado) y el HUD (Sprint 4.3). No están agrupados en un milestone del GDD porque cruzan varios sistemas a la vez (construcción, inventario, input, UI, guardado).
+
+### Bugs
+- [ ] La cama (`bed.tscn`) no rota al equiparla en modo construcción — a diferencia de techo/escritorio/decoración, que sí responden a `build_rotate`.
+- [ ] El autoguardado pisó una construcción en progreso durante una sesión de juego — piezas recién colocadas se perdieron/revirtieron. Investigar si `save_manager.gd` puede correr su guardado periódico mientras `build_system` todavía tiene una pieza equipada/a mitad de colocar, y si hace falta alguna guarda para no serializar un estado a medio construir.
+
+### Inventario / Marketplace
+- [ ] La cama, al comprarse en el marketplace, tiene que aparecer en el inventario — hoy aparece directo desbloqueada en el catálogo de construcción (mismo patrón que el cajón de madera).
+- [ ] El escritorio debe comportarse igual que la cama: comprarse en el marketplace (precio $0 por ahora) y aparecer en el inventario, no directo en el catálogo de construcción.
+- [ ] Cama y escritorio (y en general cualquier "furniture" colocable en el mundo) tienen que activar el modo construcción al equiparse desde el inventario, para poder posicionarlos en el mundo como cualquier otra pieza del catálogo.
+  - **Nota de arquitectura:** este punto está directamente relacionado con la deuda técnica ya anotada en Milestone 1 ("Desacoplar la lógica de `build_system.gd`" — hoy `_unhandled_input`/`_process` son cadenas de `if/elif equipped_category == "..."` que crecen con cada categoría nueva). Antes de conectar más piezas al inventario conviene resolver esa arquitectura (una estrategia/clase por categoría en vez de ifs encadenados), para no seguir sumando ramas a un sistema que ya cuesta seguir. Programar con cuidado y patrones de diseño prolijos, sin romper lo que ya funciona (paredes/techo/piso/puerta/catálogo).
+
+### HUD / UI
+- [ ] Prompt de tecla de interacción: reemplazar el rectángulo dibujado a mano por el set de imágenes `assets/hud/keyset` (una imagen por tecla, no un `Label` de texto compuesto a mano). El texto de la acción (ej. "Recolectar") se mantiene como texto, pero con la tipografía de texto general del inventario (Syne Mono — ver `docs/GameDesign/PXD_Diseno_HUD_UI_v1.md` sección 4.1), no la de título (Walter Turncoat). Sin borde negro, todo en blanco.
+- [ ] Cambiar la tecla de "cerrar ventana" (celular, catálogo de construcción, etc.) de `Esc` a `Q` — hoy se superpone con el menú de pausa (también en `Esc`), y termina abriendo pausa en vez de cerrar la ventana activa.
+
 ## Fuera de alcance del vertical slice (no tocar todavía)
 Cultivo/huerta, energía (solar/batería), agua, hambre/sueño, día-noche/clima, árbol tecnológico completo, más de un mini-juego, novio/perro/familia (Fase 2).
