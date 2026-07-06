@@ -72,6 +72,19 @@ const CATALOG := {
 ## lugares que la usan.
 const ROTATABLE_CATEGORIES := ["roof", "desk", "decor", "bed"]
 
+## Categorías de mobiliario interior que comparten un solo "balde" de
+## ocupación entre sí (no compiten contra pared/piso/techo/huerta — esas
+## siguen por categoría separada, se apoyan unas sobre otras a propósito —
+## pero sí compiten entre ellas: no debería poder superponerse un escritorio
+## adentro de una cama, por ejemplo).
+##
+## Nota: la reserva de slot sigue siendo de UN punto por pieza, no de la
+## huella real — la cama (~3.9m de largo) pisa más de una celda de grid_size,
+## pero un sistema de huella multi-celda por rotación es demasiada
+## complejidad de código para lo que hace falta acá. Si una pieza no entra
+## bien en el lugar elegido, se reacomoda a mano.
+const FURNITURE_CATEGORIES := ["desk", "decor", "bed"]
+
 @onready var camera: Camera3D = get_node("../Head/Camera3D")
 @onready var player: CharacterBody3D = get_parent()
 @onready var catalog_menu: Control = $BuildMenuLayer/Catalog
@@ -89,6 +102,14 @@ var menu_open: bool = false
 var manual_flip: bool = false
 var rotation_steps: int = 0
 var floor_cells: Dictionary = {}
+
+## Colisión real de la pieza equipada (solo se usa para el chequeo de
+## FURNITURE_CATEGORIES contra paredes, ver _overlaps_wall) — un mueble más
+## grande que su celda de grid (la cama, ~3.9m) puede meterse en una pared sin
+## que _slot_taken() se entere, porque ese chequeo es de un punto por
+## categoría, no de la forma real. Acá sí importa la geometría real.
+var ghost_collision_shape: Shape3D
+var ghost_collision_local_transform: Transform3D = Transform3D.IDENTITY
 
 ## category (String) -> Dictionary de Vector3i (posición cuantizada) -> true.
 ## Reemplaza el viejo chequeo de "choca la forma de colisión de la pieza
@@ -239,18 +260,25 @@ func _find_direct_collision_shapes(node: Node) -> Array[CollisionShape3D]:
 func _slot_key(pos: Vector3) -> Vector3i:
 	return Vector3i(int(round(pos.x * 100.0)), int(round(pos.y * 100.0)), int(round(pos.z * 100.0)))
 
+## Mobiliario comparte un balde ("furniture"); todo lo demás usa su propio
+## nombre de categoría, igual que siempre.
+func _slot_bucket(category: String) -> String:
+	return "furniture" if category in FURNITURE_CATEGORIES else category
+
 func _slot_taken(category: String, pos: Vector3) -> bool:
-	var cells: Dictionary = occupied_slots.get(category, {})
+	var cells: Dictionary = occupied_slots.get(_slot_bucket(category), {})
 	return cells.has(_slot_key(pos))
 
 func _register_slot(category: String, pos: Vector3) -> void:
-	if not occupied_slots.has(category):
-		occupied_slots[category] = {}
-	occupied_slots[category][_slot_key(pos)] = true
+	var bucket: String = _slot_bucket(category)
+	if not occupied_slots.has(bucket):
+		occupied_slots[bucket] = {}
+	occupied_slots[bucket][_slot_key(pos)] = true
 
 func _unregister_slot(category: String, pos: Vector3) -> void:
-	if occupied_slots.has(category):
-		occupied_slots[category].erase(_slot_key(pos))
+	var bucket: String = _slot_bucket(category)
+	if occupied_slots.has(bucket):
+		occupied_slots[bucket].erase(_slot_key(pos))
 
 func _spawn_ghost() -> void:
 	_clear_demolish_highlight()
@@ -281,10 +309,18 @@ func _spawn_ghost() -> void:
 	# deshabilitar TODAS las colisiones de la pieza (algunas, como la puerta,
 	# tienen más de una CollisionShape3D — dintel + jambas — para dejar un
 	# hueco real por donde caminar)
-	for collision in _find_direct_collision_shapes(ghost):
+	var collisions: Array[CollisionShape3D] = _find_direct_collision_shapes(ghost)
+	for collision in collisions:
 		collision.disabled = true
 	ghost.collision_layer = 0
 	ghost.collision_mask = 0
+
+	# guardado aparte para _overlaps_wall() (mobiliario más grande que su
+	# celda de grid, ej. la cama, necesita chocar contra su forma real para
+	# saber si se mete en una pared — el primer CollisionShape3D alcanza acá,
+	# el mobiliario nunca tiene más de una)
+	ghost_collision_shape = collisions[0].shape if collisions.size() > 0 else null
+	ghost_collision_local_transform = collisions[0].transform if collisions.size() > 0 else Transform3D.IDENTITY
 
 func _cell_key(x: float, z: float) -> Vector2i:
 	return Vector2i(int(round(x / grid_size)), int(round(z / grid_size)))
@@ -524,6 +560,8 @@ func _process(_delta: float) -> void:
 	ghost.global_position = snapped
 	ghost.global_rotation = Vector3(0, rot_y, 0)
 	ghost_valid = in_range and not _slot_taken(equipped_category, snapped)
+	if ghost_valid and equipped_category in FURNITURE_CATEGORIES:
+		ghost_valid = not _overlaps_wall(snapped, rot_y)
 	var tint: StandardMaterial3D = valid_material if ghost_valid else invalid_material
 	for mesh in ghost_meshes:
 		mesh.material_override = tint
@@ -542,3 +580,49 @@ func _ray_plane_point(plane_y: float) -> Variant:
 	if t <= 0.0 or t > build_range:
 		return null
 	return origin + direction * t
+
+## Choca la forma de colisión REAL del fantasma (no un punto de grilla)
+## contra las paredes ya construidas. Solo lo necesita el mobiliario
+## (FURNITURE_CATEGORIES): una pieza más grande que su celda de grid —como la
+## cama, ~3.9m de largo contra celdas de 2m— puede pisar la pared sin que
+## _slot_taken() se entere, porque ese chequeo es "un punto por categoría", no
+## la geometría real. Bug real (07/07/2026): sin este chequeo, el fantasma de
+## la cama se quedaba en verde (válido) aunque su colisión ya atravesara una
+## pared entera.
+## Grosor de una pared (wall.tscn: Vector3(2, 3, 0.4)) — como la pared está
+## centrada en el borde de la celda, la mitad de su espesor (0.2m) siempre se
+## mete en la celda vecina donde vive el mobiliario. Sin este margen, CUALQUIER
+## mueble apoyado contra una pared (no solo la cama) se marcaría inválido con
+## solo tocarla, aunque esté perfectamente centrado en su celda — no es un caso
+## raro, es geometría de fondo del kit. El margen tolera "apoyado justo contra
+## la pared" sin dejar pasar una intrusión de verdad (como la cama metida
+## medio metro adentro, que sigue superando este margen de sobra).
+const WALL_OVERLAP_MARGIN := 0.4
+
+func _overlaps_wall(pos: Vector3, rot_y: float) -> bool:
+	if not ghost_collision_shape:
+		return false
+	var space_state := get_world_3d().direct_space_state
+	var shape_query := PhysicsShapeQueryParameters3D.new()
+	shape_query.shape = _wall_check_shape()
+	shape_query.transform = Transform3D(Basis(Vector3.UP, rot_y), pos) * ghost_collision_local_transform
+	shape_query.exclude = [ghost.get_rid()]
+	for hit in space_state.intersect_shape(shape_query):
+		var collider: Object = hit.get("collider")
+		if collider and collider.is_in_group("build_piece") and collider.get_meta("piece_category", "") == "wall":
+			return true
+	return false
+
+## Copia recortada de ghost_collision_shape, solo para el chequeo de
+## _overlaps_wall() — nunca toca la colisión real del mueble ya colocado.
+func _wall_check_shape() -> Shape3D:
+	if not (ghost_collision_shape is BoxShape3D):
+		return ghost_collision_shape
+	var box: BoxShape3D = ghost_collision_shape as BoxShape3D
+	var shrunk := BoxShape3D.new()
+	shrunk.size = Vector3(
+		maxf(box.size.x - WALL_OVERLAP_MARGIN, 0.05),
+		maxf(box.size.y - WALL_OVERLAP_MARGIN, 0.05),
+		maxf(box.size.z - WALL_OVERLAP_MARGIN, 0.05)
+	)
+	return shrunk

@@ -18,6 +18,7 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/inventory_screen.tscn" id="16"]
 [ext_resource type="Script" path="res://scripts/ui/pause_system.gd" id="17"]
 [ext_resource type="Script" path="res://scripts/ui/pause_menu_ui.gd" id="18"]
+[ext_resource type="FontFile" path="res://assets/hud/fonts/Syne_Mono/SyneMono-Regular.ttf" id="19"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1"]
 radius = 0.4
@@ -163,3 +164,22 @@ value = 100.0
 texture_under = ExtResource("14")
 nine_patch_stretch = true
 fill_mode = 0
+
+[node name="DeathMessage" type="Label" parent="Hud"]
+visible = false
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -320.0
+offset_top = -60.0
+offset_right = 320.0
+offset_bottom = 60.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("19")
+theme_override_font_sizes/font_size = 26
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+text = "Te desmayaste de cansancio/hambre.
+Se recargó tu última partida guardada."

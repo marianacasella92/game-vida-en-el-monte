@@ -13,6 +13,9 @@ const FILL_TEXTURE := preload("res://assets/hud/bar_fill.png")
 @onready var health_icon: TextureRect = $Root/HealthIcon
 @onready var hunger_bar: TextureProgressBar = $Root/StatsColumn/HungerRow/HungerBar
 @onready var energy_bar: TextureProgressBar = $Root/StatsColumn/EnergyRow/EnergyBar
+@onready var death_message: Label = $DeathMessage
+
+const DEATH_MESSAGE_DURATION := 4.0
 
 @onready var build_system: Node = get_tree().get_first_node_in_group("build_system")
 @onready var work_system: Node = get_tree().get_first_node_in_group("work_system")
@@ -26,6 +29,7 @@ func _ready() -> void:
 
 	PlayerNeeds.hunger_changed.connect(_update_hunger)
 	PlayerNeeds.sleep_changed.connect(_update_energy)
+	PlayerNeeds.died.connect(_on_player_died)
 
 	_update_hunger(PlayerNeeds.hunger)
 	_update_energy(PlayerNeeds.sleep)
@@ -48,3 +52,12 @@ func _update_hunger(value: float) -> void:
 
 func _update_energy(value: float) -> void:
 	energy_bar.value = value
+
+## GDD 4.8: morir por hambre/sueño descuidado recarga el último guardado en
+## silencio (save_manager.gd::_on_player_died) — sin este aviso, esa recarga
+## se sentía como un bug random pisando la construcción en curso, en vez de la
+## única penalización dura a propósito del juego.
+func _on_player_died() -> void:
+	death_message.visible = true
+	await get_tree().create_timer(DEATH_MESSAGE_DURATION).timeout
+	death_message.visible = false
