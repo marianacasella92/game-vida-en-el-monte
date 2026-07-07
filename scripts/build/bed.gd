@@ -1,46 +1,9 @@
-extends StaticBody3D
+extends "res://scripts/build/proximity_interactable.gd"
 
-## Detección de proximidad de la cama, mismo patrón que desk.gd: muestra
-## "Presioná E para dormir" al entrar al área. Al presionar `interact` en
-## rango, restaura el sueño al máximo de una — sin transición de día/noche
-## todavía (eso es Sprint 4.4), ni animación de dormir.
+## Cama: dormir restaura el sueño al máximo — sin transición de día/noche
+## todavía (eso es Sprint 4.4), ni animación de dormir. Proximidad, prompt y
+## guardas de pantallas modales viven en proximity_interactable.gd.
 
-@export var interaction_range: float = 2.0
-
-@onready var area: Area3D = $InteractionArea
-@onready var area_shape: CollisionShape3D = $InteractionArea/CollisionShape3D
-@onready var prompt: Node3D = $InteractPrompt
-
-var _player: Node3D = null
-
-func _ready() -> void:
-	var shape := SphereShape3D.new()
-	shape.radius = interaction_range
-	area_shape.shape = shape
-	area.body_entered.connect(_on_body_entered)
-	area.body_exited.connect(_on_body_exited)
-	prompt.hide_prompt()
-
-func _on_body_entered(body: Node3D) -> void:
-	if body.is_in_group("player"):
-		_player = body
-		prompt.show_prompt("Dormir")
-
-func _on_body_exited(body: Node3D) -> void:
-	if body.is_in_group("player"):
-		_player = null
-		prompt.hide_prompt()
-
-func _unhandled_input(event: InputEvent) -> void:
-	if _player and event.is_action_pressed("interact"):
-		var phone_system := get_tree().get_first_node_in_group("phone_system")
-		if phone_system and phone_system.is_open:
-			return
-		var inventory_system := get_tree().get_first_node_in_group("inventory_system")
-		if inventory_system and inventory_system.is_open:
-			return
-		var pause_system := get_tree().get_first_node_in_group("pause_system")
-		if pause_system and pause_system.is_open:
-			return
-		PlayerNeeds.sleep_now()
-		print("[needs] durmió, sueño=%.0f" % PlayerNeeds.sleep)
+func _on_interact() -> void:
+	PlayerNeeds.sleep_now()
+	print("[needs] durmió, sueño=%.0f" % PlayerNeeds.sleep)

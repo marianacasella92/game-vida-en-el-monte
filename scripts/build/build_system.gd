@@ -4,13 +4,30 @@ extends Node3D
 @export var grid_size: float = 2.0
 @export var wall_height: float = 3.0
 
-## category_id -> {"label": String, "variants": {variant_id -> {"label": String, "scene": PackedScene, "requires_item": String opcional}}}
-## La categoría define CÓMO se posiciona la pieza (ver _process); la variante
-## solo define QUÉ escena se instancia. Agregar una puerta, una ventana o una
-## esquina nueva es sumar una entrada acá, sin tocar la lógica de snap.
-## "requires_item" (opcional) es el id de Economy.purchased_items que hace
-## falta tener comprado en el marketplace para que la variante aparezca en el
-## catálogo (ver _menu_catalog).
+## category_id -> {"label": String, "variants": {variant_id -> {"label": String,
+## "scene": PackedScene, "requires_item"/"inventory_item"/"hidden_from_catalog"
+## opcionales}}}. La categoría define CÓMO se posiciona la pieza (ver
+## _process); la variante solo define QUÉ escena se instancia. Agregar una
+## puerta, una ventana o una esquina nueva es sumar una entrada acá, sin tocar
+## la lógica de snap.
+##
+## "requires_item" (opcional): id de Economy.purchased_items que hace falta
+## tener comprado para que la variante aparezca en el catálogo de `G`
+## (desbloqueo permanente, ver _menu_catalog) — usado por piezas gratis e
+## ilimitadas una vez desbloqueadas.
+##
+## "inventory_item" (opcional): id de ítem de Hotbar/Backpack que, al quedar
+## equipado (seleccionado en el hotbar), activa el modo construcción para
+## esta categoría/variante — ver _on_hotbar_changed() e
+## _inventory_item_to_piece. Se consume 1 del stack al colocar la pieza con
+## éxito (_place_piece()), igual que cualquier otro consumible del inventario.
+## Mutuamente excluyente con "requires_item": una variante usa uno u otro, no
+## los dos (son dos vías de desbloqueo distintas — desbloqueo permanente vs.
+## ítem físico que se gasta).
+##
+## "hidden_from_catalog" (opcional, bool): la variante nunca aparece en el
+## catálogo de `G`, aunque no tenga "requires_item" — para piezas que solo se
+## equipan desde el inventario ("inventory_item").
 const CATALOG := {
 	"wall": {
 		"label": "Pared",
@@ -41,13 +58,13 @@ const CATALOG := {
 	"desk": {
 		"label": "Escritorio",
 		"variants": {
-			"plain": {"label": "Escritorio", "scene": preload("res://scenes/build/desk.tscn")},
+			"plain": {"label": "Escritorio", "scene": preload("res://scenes/build/desk.tscn"), "inventory_item": "desk", "hidden_from_catalog": true},
 		},
 	},
 	"decor": {
 		"label": "Decoración",
 		"variants": {
-			"crate": {"label": "Cajón de madera", "scene": preload("res://scenes/build/decor_crate.tscn"), "requires_item": "crate"},
+			"crate": {"label": "Cajón de madera", "scene": preload("res://scenes/build/decor_crate.tscn"), "inventory_item": "crate", "hidden_from_catalog": true},
 		},
 	},
 	"garden": {
@@ -59,7 +76,7 @@ const CATALOG := {
 	"bed": {
 		"label": "Cama",
 		"variants": {
-			"plain": {"label": "Cama simple", "scene": preload("res://scenes/build/bed.tscn"), "requires_item": "bed"},
+			"plain": {"label": "Cama simple", "scene": preload("res://scenes/build/bed.tscn"), "inventory_item": "bed", "hidden_from_catalog": true},
 		},
 	},
 }
@@ -77,42 +94,59 @@ const CATALOG := {
 ## 3. ¿Su módulo real no coincide con grid_size (2x2)? — como el techo,
 ##    modelado en 2x1 — necesita su propia función de snap (ver _snap_roof),
 ##    no alcanza con usar _snap_flat.
-## 4. ¿Se puede rotar con `build_rotate`? Sumarla a ROTATABLE_CATEGORIES (ver
-##    abajo) — es la única lista que hace falta tocar, tanto el input como el
-##    ángulo final la leen de ahí.
-## 5. ¿Es mobiliario interior (no pared/piso/techo/huerta)? Sumarla a
-##    FURNITURE_CATEGORIES (ver abajo) — así comparte balde de ocupación con
-##    el resto del mobiliario (no se superponen entre sí) Y queda cubierta
-##    automáticamente por _overlaps_wall(), que ya tolera quedar apoyada
-##    contra una pared (WALL_OVERLAP_MARGIN) sin dejar pasar una intrusión de
-##    verdad.
+## 4. ¿Necesita orientarse sola según lo que ya hay construido al lado (como
+##    la pared, que se auto-encaja al borde más cercano)? Eso es un caso
+##    especial de verdad — se maneja aparte en _process(), no entra en la
+##    tabla de abajo (solo "wall" lo necesita hoy).
+## 5. Para todo lo demás (se posiciona plano, tal vez rota), sumarla a
+##    CATEGORY_BEHAVIOR (ver _ready()) con "rotatable"/"furniture" según
+##    corresponda. Es la ÚNICA tabla que hace falta tocar — ni
+##    _unhandled_input() ni _process() necesitan una rama nueva. Una
+##    categoría no listada ahí usa el comportamiento por defecto (no rota, no
+##    es mobiliario, se posiciona con _snap_flat) — mismo criterio que ya
+##    tenían piso/huerta.
 ##
-## Ninguno de estos pasos requiere tocar a mano _process()/_unhandled_input()
-## por cada categoría nueva — por eso existen estas listas en vez de cadenas
-## de `if equipped_category == "..."` repetidas.
+## "furniture: true" hace dos cosas solas: comparte balde de ocupación con el
+## resto del mobiliario (no se superponen entre sí) y queda cubierta por
+## _overlaps_wall(), que ya tolera quedar apoyada contra una pared
+## (WALL_OVERLAP_MARGIN) sin dejar pasar una intrusión de verdad.
+##
+## 6. ¿Se compra en el marketplace y se equipa desde el inventario en vez de
+##    elegirse en el catálogo de `G` (como cama/escritorio/decoración)?
+##    Ponerle "inventory_item"/"hidden_from_catalog" en el CATALOG de arriba
+##    (ver comentario ahí) — _inventory_item_to_piece la detecta sola, no
+##    hace falta tocar _on_hotbar_changed() ni _place_piece().
 ## ---------------------------------------------------------------------
 
-## Categorías que se pueden rotar 90° con `build_rotate` mientras están
-## equipadas — única fuente de verdad para esta lista. Bug real (07/07/2026):
-## la cama nunca rotaba porque "bed" faltaba de dos chequeos `or` idénticos
-## por separado (uno en _unhandled_input, otro en _process) — al agregar una
-## categoría nueva que rote, sumarla acá alcanza, no hace falta tocar los dos
-## lugares que la usan.
-const ROTATABLE_CATEGORIES := ["roof", "desk", "decor", "bed"]
-
-## Categorías de mobiliario interior que comparten un solo "balde" de
-## ocupación entre sí (no compiten contra pared/piso/techo/huerta — esas
-## siguen por categoría separada, se apoyan unas sobre otras a propósito —
-## pero sí compiten entre ellas: no debería poder superponerse un escritorio
-## adentro de una cama, por ejemplo) y quedan cubiertas por el chequeo de
-## _overlaps_wall() (ver más abajo, junto con WALL_OVERLAP_MARGIN).
+## category -> {"targeting": "ray"|"plane", "snap": Callable(Vector3)->Vector3,
+## "rotatable": bool, "furniture": bool}. Se arma en _ready() (no puede ser
+## const: un Callable(self, ...) recién existe con el nodo ya en el árbol,
+## mismo motivo que _state_actions en CropManager). Categorías no listadas
+## usan el default de cada `.get()` — ver los puntos de lectura en
+## _unhandled_input()/_process()/_slot_bucket().
 ##
-## Nota: la reserva de slot sigue siendo de UN punto por pieza, no de la
-## huella real — la cama (~3.9m de largo) pisa más de una celda de grid_size,
-## pero un sistema de huella multi-celda por rotación es demasiada
-## complejidad de código para lo que hace falta acá. Si una pieza no entra
-## bien en el lugar elegido, se reacomoda a mano.
-const FURNITURE_CATEGORIES := ["desk", "decor", "bed"]
+## Reemplaza las dos listas separadas (ROTATABLE_CATEGORIES/
+## FURNITURE_CATEGORIES) y los if/elif de snap por categoría que había antes
+## en _process() — deuda técnica anotada desde el Milestone 1 ("Desacoplar la
+## lógica de build_system.gd"). "wall" queda afuera de esta tabla a propósito:
+## es la única categoría con auto-encaje según lo construido al lado, un caso
+## realmente distinto al resto, no un elif más de la misma forma.
+var CATEGORY_BEHAVIOR: Dictionary = {}
+
+## item_id (Backpack/Hotbar) -> {"category": String, "variant": String} —
+## derivado de CATALOG (campo "inventory_item" de cada variante) en _ready(),
+## nunca mantenido a mano aparte, para no repetir el bug de listas paralelas
+## desincronizadas (ver CATEGORY_BEHAVIOR más arriba). Lo usa
+## _on_hotbar_changed() para saber si el ítem recién seleccionado en el
+## hotbar tiene que activar el modo construcción.
+var _inventory_item_to_piece: Dictionary = {}
+
+## true mientras la pieza equipada vino de seleccionar un ítem del hotbar
+## (_on_hotbar_changed), no del catálogo de `G` (_on_piece_chosen). Distingue
+## cuándo _place_piece() tiene que consumir 1 del stack del hotbar, y cuándo
+## un cambio de selección del hotbar tiene que sacar la pieza de la mano
+## (ver _exit_build_mode()).
+var _equipped_via_inventory: bool = false
 
 @onready var camera: Camera3D = get_node("../Head/Camera3D")
 @onready var player: CharacterBody3D = get_parent()
@@ -133,10 +167,10 @@ var rotation_steps: int = 0
 var floor_cells: Dictionary = {}
 
 ## Colisión real de la pieza equipada (solo se usa para el chequeo de
-## FURNITURE_CATEGORIES contra paredes, ver _overlaps_wall) — un mueble más
-## grande que su celda de grid (la cama, ~3.9m) puede meterse en una pared sin
-## que _slot_taken() se entere, porque ese chequeo es de un punto por
-## categoría, no de la forma real. Acá sí importa la geometría real.
+## mobiliario contra paredes, ver _overlaps_wall) — un mueble más grande que
+## su celda de grid (la cama, ~3.9m) puede meterse en una pared sin que
+## _slot_taken() se entere, porque ese chequeo es de un punto por categoría,
+## no de la forma real. Acá sí importa la geometría real.
 var ghost_collision_shape: Shape3D
 var ghost_collision_local_transform: Transform3D = Transform3D.IDENTITY
 
@@ -165,6 +199,13 @@ var invalid_material := StandardMaterial3D.new()
 func _ready() -> void:
 	add_to_group("build_system")
 
+	CATEGORY_BEHAVIOR = {
+		"roof": {"targeting": "plane", "snap": Callable(self, "_snap_roof"), "rotatable": true, "furniture": false},
+		"desk": {"targeting": "ray", "snap": Callable(self, "_snap_flat"), "rotatable": true, "furniture": true},
+		"decor": {"targeting": "ray", "snap": Callable(self, "_snap_flat"), "rotatable": true, "furniture": true},
+		"bed": {"targeting": "ray", "snap": Callable(self, "_snap_flat"), "rotatable": true, "furniture": true},
+	}
+
 	valid_material.albedo_color = Color(0.2, 1.0, 0.2, 0.5)
 	valid_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	valid_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
@@ -173,10 +214,24 @@ func _ready() -> void:
 	invalid_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	invalid_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 
+	_build_inventory_item_lookup()
+
 	catalog_menu.setup(_menu_catalog())
 	catalog_menu.piece_chosen.connect(_on_piece_chosen)
 	catalog_menu.cancelled.connect(_close_catalog)
+	Hotbar.inventory_changed.connect(_on_hotbar_changed)
 	_spawn_ghost()
+
+## Recorre CATALOG una sola vez y arma _inventory_item_to_piece — ver el
+## comentario de esa variable.
+func _build_inventory_item_lookup() -> void:
+	_inventory_item_to_piece = {}
+	for category_id in CATALOG:
+		for variant_id in CATALOG[category_id]["variants"]:
+			var variant: Dictionary = CATALOG[category_id]["variants"][variant_id]
+			var item_id: String = variant.get("inventory_item", "")
+			if item_id != "":
+				_inventory_item_to_piece[item_id] = {"category": category_id, "variant": variant_id}
 
 func _menu_catalog() -> Dictionary:
 	var menu: Dictionary = {}
@@ -184,6 +239,8 @@ func _menu_catalog() -> Dictionary:
 		var variants: Dictionary = {}
 		for variant_id in CATALOG[category_id]["variants"]:
 			var variant: Dictionary = CATALOG[category_id]["variants"][variant_id]
+			if variant.get("hidden_from_catalog", false):
+				continue
 			var requires_item: String = variant.get("requires_item", "")
 			if requires_item != "" and not Economy.purchased_items.has(requires_item):
 				continue
@@ -223,7 +280,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("build_flip"):
 		manual_flip = not manual_flip
 	elif event.is_action_pressed("build_rotate"):
-		if equipped_category in ROTATABLE_CATEGORIES:
+		if CATEGORY_BEHAVIOR.get(equipped_category, {}).get("rotatable", false):
 			rotation_steps = (rotation_steps + 1) % 4
 	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		if equipped_category == "demolish":
@@ -249,6 +306,7 @@ func _close_catalog() -> void:
 func _exit_build_mode() -> void:
 	equipped_category = "none"
 	equipped_variant = ""
+	_equipped_via_inventory = false
 	menu_open = false
 	manual_flip = false
 	rotation_steps = 0
@@ -261,11 +319,33 @@ func _exit_build_mode() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	catalog_menu.close()
 
-func _on_piece_chosen(category: String, variant: String) -> void:
+func _equip(category: String, variant: String) -> void:
 	equipped_category = category
 	equipped_variant = variant
 	_spawn_ghost()
+
+func _on_piece_chosen(category: String, variant: String) -> void:
+	_equip(category, variant)
+	_equipped_via_inventory = false
 	_close_catalog()
+
+## Escucha Hotbar.inventory_changed: si el ítem recién seleccionado en el
+## hotbar es una pieza colocable (CATALOG con "inventory_item", ver
+## _inventory_item_to_piece), la equipa como si se hubiera elegido en el
+## catálogo de `G` — y si el ítem seleccionado deja de serlo mientras había
+## una pieza equipada de esta forma, la suelta. Nunca toca una pieza
+## equipada desde el catálogo (_equipped_via_inventory la distingue).
+func _on_hotbar_changed() -> void:
+	if work_system.is_working or phone_system.is_open or inventory_system.is_open or pause_system.is_open or menu_open:
+		return
+	var selected_item_id: String = Hotbar.get_selected_item().get("id", "")
+	var piece: Dictionary = _inventory_item_to_piece.get(selected_item_id, {})
+	if not piece.is_empty():
+		if not _equipped_via_inventory or equipped_category != piece["category"] or equipped_variant != piece["variant"]:
+			_equip(piece["category"], piece["variant"])
+			_equipped_via_inventory = true
+	elif _equipped_via_inventory:
+		_exit_build_mode()
 
 func _find_mesh_instances(node: Node) -> Array[MeshInstance3D]:
 	var found: Array[MeshInstance3D] = []
@@ -289,10 +369,11 @@ func _find_direct_collision_shapes(node: Node) -> Array[CollisionShape3D]:
 func _slot_key(pos: Vector3) -> Vector3i:
 	return Vector3i(int(round(pos.x * 100.0)), int(round(pos.y * 100.0)), int(round(pos.z * 100.0)))
 
-## Mobiliario comparte un balde ("furniture"); todo lo demás usa su propio
-## nombre de categoría, igual que siempre.
+## Mobiliario (CATEGORY_BEHAVIOR[...]["furniture"] == true) comparte un balde
+## ("furniture"); todo lo demás usa su propio nombre de categoría, igual que
+## siempre.
 func _slot_bucket(category: String) -> String:
-	return "furniture" if category in FURNITURE_CATEGORIES else category
+	return "furniture" if CATEGORY_BEHAVIOR.get(category, {}).get("furniture", false) else category
 
 func _slot_taken(category: String, pos: Vector3) -> bool:
 	var cells: Dictionary = occupied_slots.get(_slot_bucket(category), {})
@@ -369,6 +450,14 @@ func _place_piece() -> void:
 		floor_cells[_cell_key(piece.global_position.x, piece.global_position.z)] = true
 	elif equipped_category == "garden":
 		CropManager.register_plantable(piece)
+
+	# ítem físico del inventario (cama/escritorio/decoración): se gasta 1 del
+	# stack al colocar, igual que cualquier otro consumible. Si era el
+	# último, Hotbar.remove_item() dispara inventory_changed y
+	# _on_hotbar_changed() suelta la pieza sola — no hace falta llamar
+	# _exit_build_mode() acá.
+	if _equipped_via_inventory:
+		Hotbar.remove_item(Hotbar.selected_slot)
 
 func _process_demolish() -> void:
 	var result := _cast_build_ray()
@@ -556,40 +645,45 @@ func _process(_delta: float) -> void:
 	var snapped: Vector3
 	var rot_y: float
 	var in_range: bool
+	var is_furniture: bool = false
 
-	if equipped_category == "roof":
-		# El techo vive en un plano horizontal fijo (wall_height), no en lo
-		# que golpee un raycast físico: apuntar al hueco de una cumbrera sin
-		# terminar (cielo abierto arriba, o el Faldón vecino tapando la línea
-		# de visión) no tiene nada sólido para chocar dentro de build_range,
-		# así que depender de _cast_build_ray() dejaba esa celda imposible de
-		# colocar sin importar el ángulo. Acá se interseca matemáticamente el
-		# rayo de la cámara con el plano y=wall_height en vez de tirar un
-		# raycast físico.
-		var plane_point: Variant = _ray_plane_point(wall_height)
-		in_range = plane_point != null
-		snapped = _snap_roof(plane_point) if in_range else ghost.global_position
-		rot_y = rotation_steps * (PI / 2.0)
-	else:
+	# "wall" queda afuera de CATEGORY_BEHAVIOR a propósito: es la única
+	# categoría que se auto-encaja al borde más cercano de lo ya construido
+	# (ver _snap_wall), un caso realmente distinto al resto — no un elif más
+	# de la misma forma.
+	if equipped_category == "wall":
 		var result := _cast_build_ray()
 		var target_point: Vector3 = result.position if result else _build_ray_target()
 		in_range = not result.is_empty()
+		var placement: Dictionary = _snap_wall(target_point)
+		snapped = placement["position"]
+		rot_y = placement["rotation"]
+	else:
+		var behavior: Dictionary = CATEGORY_BEHAVIOR.get(equipped_category, {})
+		var snap: Callable = behavior.get("snap", Callable(self, "_snap_flat"))
+		is_furniture = behavior.get("furniture", false)
+		rot_y = rotation_steps * (PI / 2.0) if behavior.get("rotatable", false) else 0.0
 
-		if equipped_category == "wall":
-			var placement: Dictionary = _snap_wall(target_point)
-			snapped = placement["position"]
-			rot_y = placement["rotation"]
-		elif equipped_category in ROTATABLE_CATEGORIES:
-			snapped = _snap_flat(target_point)
-			rot_y = rotation_steps * (PI / 2.0)
+		if behavior.get("targeting", "ray") == "plane":
+			# Categorías que viven en un plano horizontal fijo (wall_height),
+			# no en lo que golpee un raycast físico: apuntar al hueco de una
+			# cumbrera sin terminar (cielo abierto arriba, o la pieza vecina
+			# tapando la línea de visión) no tiene nada sólido para chocar
+			# dentro de build_range, así que depender de _cast_build_ray()
+			# dejaba esa celda imposible de colocar sin importar el ángulo.
+			var plane_point: Variant = _ray_plane_point(wall_height)
+			in_range = plane_point != null
+			snapped = snap.call(plane_point) if in_range else ghost.global_position
 		else:
-			snapped = _snap_flat(target_point)
-			rot_y = 0.0
+			var result := _cast_build_ray()
+			var target_point: Vector3 = result.position if result else _build_ray_target()
+			in_range = not result.is_empty()
+			snapped = snap.call(target_point)
 
 	ghost.global_position = snapped
 	ghost.global_rotation = Vector3(0, rot_y, 0)
 	ghost_valid = in_range and not _slot_taken(equipped_category, snapped)
-	if ghost_valid and equipped_category in FURNITURE_CATEGORIES:
+	if ghost_valid and is_furniture:
 		ghost_valid = not _overlaps_wall(snapped, rot_y)
 	var tint: StandardMaterial3D = valid_material if ghost_valid else invalid_material
 	for mesh in ghost_meshes:
@@ -612,12 +706,12 @@ func _ray_plane_point(plane_y: float) -> Variant:
 
 ## Choca la forma de colisión REAL del fantasma (no un punto de grilla)
 ## contra las paredes ya construidas. Solo lo necesita el mobiliario
-## (FURNITURE_CATEGORIES): una pieza más grande que su celda de grid —como la
-## cama, ~3.9m de largo contra celdas de 2m— puede pisar la pared sin que
-## _slot_taken() se entere, porque ese chequeo es "un punto por categoría", no
-## la geometría real. Bug real (07/07/2026): sin este chequeo, el fantasma de
-## la cama se quedaba en verde (válido) aunque su colisión ya atravesara una
-## pared entera.
+## (CATEGORY_BEHAVIOR[...]["furniture"] == true): una pieza más grande que su
+## celda de grid —como la cama, ~3.9m de largo contra celdas de 2m— puede
+## pisar la pared sin que _slot_taken() se entere, porque ese chequeo es "un
+## punto por categoría", no la geometría real. Bug real (07/07/2026): sin este
+## chequeo, el fantasma de la cama se quedaba en verde (válido) aunque su
+## colisión ya atravesara una pared entera.
 ## Grosor de una pared (wall.tscn: Vector3(2, 3, 0.4)) — como la pared está
 ## centrada en el borde de la celda, la mitad de su espesor (0.2m) siempre se
 ## mete en la celda vecina donde vive el mobiliario. Sin este margen, CUALQUIER

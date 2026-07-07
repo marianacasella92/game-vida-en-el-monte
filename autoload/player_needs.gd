@@ -91,6 +91,17 @@ func _process_health(delta: float) -> void:
 	elif health > 0.0:
 		_is_dead = false
 
+## Baja la vida una cantidad puntual — hoy solo lo usa la tecla de debug del
+## modo desarrollador (F4, ver dev_mode.gd), pero es la API para cualquier
+## fuente de daño futura (caídas, etc.). Dispara `died` igual que la baja
+## gradual de _process_health().
+func damage(amount: float) -> void:
+	health = clampf(health - amount, 0.0, max_health)
+	health_changed.emit(health)
+	if health <= 0.0 and not _is_dead:
+		_is_dead = true
+		died.emit()
+
 func is_neglected() -> bool:
 	return hunger <= max_hunger * neglect_threshold_ratio or sleep <= max_sleep * neglect_threshold_ratio
 
@@ -126,16 +137,19 @@ func sleep_now() -> void:
 	sleep = max_sleep
 	sleep_changed.emit(sleep)
 
-## Llamado por SaveManager al recargar tras una muerte: pone un piso mínimo de
-## hambre/sueño (no el máximo) y la vida al máximo, para que no se vuelva a
-## morir instantáneamente si el último guardado también tenía las necesidades
-## bajas — sin esto, cargar y morir de nuevo en loop sería posible.
+## Llamado por SaveManager al recargar tras un desmayo (muerte por descuido).
+## El hambre queda TAL CUAL estaba en el último guardado — no se toca acá,
+## `load_game()` ya la restauró vía apply_save_data() antes de llamar a esto,
+## y no hace falta un piso mínimo (dormir/comer siguen siendo decisión de la
+## jugadora, no un regalo). El sueño se restaura al máximo (a eso equivale
+## "despertar" del desmayo) y la vida solo a un 60% — no al máximo, para que
+## el desmayo siga siendo una consecuencia real, no un reinicio gratis.
+const DEATH_GRACE_HEALTH_RATIO := 0.6
+
 func grant_death_grace() -> void:
-	hunger = maxf(hunger, max_hunger * 0.4)
-	sleep = maxf(sleep, max_sleep * 0.4)
-	health = max_health
+	sleep = max_sleep
+	health = max_health * DEATH_GRACE_HEALTH_RATIO
 	_is_dead = false
-	hunger_changed.emit(hunger)
 	sleep_changed.emit(sleep)
 	health_changed.emit(health)
 

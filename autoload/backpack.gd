@@ -14,14 +14,30 @@ func _ready() -> void:
 	add_to_group("backpack")
 
 ## Punto de entrada único para "darle un ítem nuevo a la jugadora" (cosechar,
-## comprar): intenta el hotbar primero (acceso directo), y si está lleno,
-## cae acá. Quien recibe un ítem nuevo debería llamar siempre a este método
-## (no a Hotbar.add_item() directo), para que el desborde funcione siempre
-## igual sin importar de dónde venga el ítem.
+## comprar una herramienta/consumible): intenta el hotbar primero (acceso
+## rápido), y si está lleno, cae a la mochila. Quien recibe un ítem nuevo
+## debería llamar siempre a este método (no a Hotbar.add_item() directo),
+## para que el desborde funcione siempre igual sin importar de dónde venga
+## el ítem.
 func add_item(item_id: String, item_name: String, stack: int = 1) -> void:
 	if Hotbar.add_item(item_id, item_name, stack):
 		return
+	_add_to_backpack(item_id, item_name, stack)
 
+## Igual que add_item(), pero nunca pasa por el hotbar — directo a la
+## mochila. Bug real (07/07/2026): comprar una pieza de construcción (cama,
+## escritorio, cajón) con add_item() normal podía caer justo en el slot del
+## hotbar que ya estaba seleccionado, y build_system.gd (que escucha
+## Hotbar.inventory_changed para saber cuándo el jugador equipa una pieza)
+## no tiene forma de distinguir eso de "la jugadora eligió esto a propósito"
+## — entraba en modo construcción solo, sin que nadie lo pidiera. Usado por
+## marketplace_ui.gd para los ítems marcados "skip_hotbar" en su tabla de
+## ITEMS: tienen que llegar solo a la mochila, y equiparse recién cuando la
+## jugadora los arrastra al hotbar ella misma.
+func add_item_no_hotbar(item_id: String, item_name: String, stack: int = 1) -> void:
+	_add_to_backpack(item_id, item_name, stack)
+
+func _add_to_backpack(item_id: String, item_name: String, stack: int) -> void:
 	for slot in range(SLOT_COUNT):
 		if items.has(slot) and items[slot].get("id", "") == item_id:
 			items[slot]["stack"] += stack

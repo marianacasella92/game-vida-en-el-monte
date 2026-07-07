@@ -9,6 +9,8 @@ size = Vector3(1.95, 1.3, 3.9)
 
 [node name="Bed" type="StaticBody3D" groups=["build_piece"]]
 script = ExtResource("2")
+interaction_range = 2.0
+action_text = "Dormir"
 metadata/piece_category = "bed"
 metadata/piece_id = "plain"
 

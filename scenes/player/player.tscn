@@ -1,4 +1,4 @@
-[gd_scene load_steps=19 format=3]
+[gd_scene load_steps=22 format=3]
 
 [ext_resource type="Script" path="res://scripts/player.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/build/build_system.gd" id="2"]
@@ -9,7 +9,8 @@
 [ext_resource type="Script" path="res://scripts/phone/phone_system.gd" id="7"]
 [ext_resource type="Script" path="res://scripts/phone/marketplace_ui.gd" id="8"]
 [ext_resource type="PackedScene" path="res://scenes/player/arms.tscn" id="9"]
-[ext_resource type="Texture2D" path="res://assets/hud/icon_health.png" id="10"]
+[ext_resource type="Texture2D" path="res://assets/hud/icon_health_frame.png" id="10"]
+[ext_resource type="Texture2D" path="res://assets/hud/icon_health_heart.png" id="21"]
 [ext_resource type="Texture2D" path="res://assets/hud/icon_hunger_small.png" id="11"]
 [ext_resource type="Texture2D" path="res://assets/hud/bar_hunger.png" id="12"]
 [ext_resource type="Texture2D" path="res://assets/hud/icon_energy_small.png" id="13"]
@@ -19,10 +20,15 @@
 [ext_resource type="Script" path="res://scripts/ui/pause_system.gd" id="17"]
 [ext_resource type="Script" path="res://scripts/ui/pause_menu_ui.gd" id="18"]
 [ext_resource type="FontFile" path="res://assets/hud/fonts/Syne_Mono/SyneMono-Regular.ttf" id="19"]
+[ext_resource type="Shader" path="res://scenes/ui/low_health_vignette.gdshader" id="20"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1"]
 radius = 0.4
 height = 1.8
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_vignette"]
+shader = ExtResource("20")
+shader_parameter/intensity = 0.0
 
 [node name="Player" type="CharacterBody3D"]
 script = ExtResource("1")
@@ -99,6 +105,14 @@ script = ExtResource("18")
 [node name="Hud" type="CanvasLayer" parent="."]
 script = ExtResource("6")
 
+[node name="LowHealthVignette" type="ColorRect" parent="Hud"]
+visible = false
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+color = Color(0, 0, 0, 0)
+material = SubResource("ShaderMaterial_vignette")
+
 [node name="Root" type="HBoxContainer" parent="Hud"]
 anchor_left = 0.0
 anchor_right = 0.0
@@ -110,13 +124,26 @@ offset_right = 318.0
 offset_bottom = 138.0
 theme_override_constants/separation = 0
 
-[node name="HealthIcon" type="TextureRect" parent="Hud/Root"]
+[node name="HealthIcon" type="Control" parent="Hud/Root"]
 custom_minimum_size = Vector2(98, 98)
+size_flags_horizontal = 0
+size_flags_vertical = 4
+
+[node name="HeartFill" type="TextureProgressBar" parent="Hud/Root/HealthIcon"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+max_value = 100.0
+value = 100.0
+fill_mode = 3
+nine_patch_stretch = true
+texture_progress = ExtResource("21")
+
+[node name="Frame" type="TextureRect" parent="Hud/Root/HealthIcon"]
+anchor_right = 1.0
+anchor_bottom = 1.0
 texture = ExtResource("10")
 expand_mode = 1
 stretch_mode = 5
-size_flags_horizontal = 0
-size_flags_vertical = 4
 
 [node name="StatsColumn" type="VBoxContainer" parent="Hud/Root"]
 theme_override_constants/separation = 0

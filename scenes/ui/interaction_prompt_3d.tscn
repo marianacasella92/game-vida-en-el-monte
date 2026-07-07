@@ -1,26 +1,21 @@
 [gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/interaction_prompt_3d.gd" id="1"]
-[ext_resource type="Texture2D" path="res://assets/hud/key_prompt_frame.png" id="2"]
+[ext_resource type="FontFile" path="res://assets/hud/fonts/Syne_Mono/SyneMono-Regular.ttf" id="2"]
 
 [node name="InteractionPrompt3D" type="Node3D"]
 script = ExtResource("1")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0)
 
-[node name="Frame" type="Sprite3D" parent="."]
-pixel_size = 0.001
+[node name="KeySprite" type="Sprite3D" parent="."]
+pixel_size = 0.0004
 billboard = 1
-texture = ExtResource("2")
-
-[node name="KeyLabel" type="Label3D" parent="Frame"]
-billboard = 1
-font_size = 48
-pixel_size = 0.004
-text = "E"
 
 [node name="ActionLabel" type="Label3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.16, 0)
 billboard = 1
+outline_size = 0
+font = ExtResource("2")
 font_size = 32
 pixel_size = 0.004
 text = "Acción"

@@ -7,9 +7,18 @@ extends Node3D
 @export var debug_show_crop_grid: bool = false
 @export var crop_growth_time: float = 8.0
 
+const InteractionPrompt3D := preload("res://scenes/ui/interaction_prompt_3d.tscn")
+
 var crop_slots: Array[Area3D] = []
 var camera: Camera3D
 var marker_materials: Dictionary = {}
+
+## Prompt compartido para la huerta (una sola instancia que "sigue" a la
+## parcela apuntada, en vez de una por parcela) — mismo criterio que ya usa
+## build_system.gd para el fantasma/resaltado de demolición: un solo nodo
+## roaming es más simple que darle un InteractPrompt propio a cada parcela
+## cuando solo se puede estar mirando una a la vez.
+var crop_prompt: Node3D
 
 func _ready() -> void:
 	camera = get_node("Player/Head/Camera3D")
@@ -21,6 +30,10 @@ func _ready() -> void:
 	_restore_plots_visuals()
 	Hotbar.inventory_changed.connect(_on_inventory_changed)
 	_on_inventory_changed()
+
+	crop_prompt = InteractionPrompt3D.instantiate()
+	add_child(crop_prompt)
+	crop_prompt.hide_prompt()
 
 func _restore_plots_visuals() -> void:
 	for piece in get_tree().get_nodes_in_group("build_piece"):
@@ -87,6 +100,76 @@ func _process(delta: float) -> void:
 				_set_slot_state(slot, "ready")
 
 	# placed garden pieces are handled by CropManager singleton
+	_update_crop_prompt()
+
+## Prompt de interacción para la parcela apuntada, con la misma imagen real
+## de tecla que ya usan cama/escritorio (interaction_prompt_3d.tscn) — antes
+## la huerta no mostraba ningún prompt, ni siquiera el rectángulo viejo.
+## Cosechar usa la tecla "interact" (E, igual que el resto); sembrar/regar son
+## de herramienta (click izquierdo), que no tiene una acción con nombre en
+## InputMap para resolver sola — por eso el ícono "left_mouse" se pasa
+## directo en vez de leerlo de InputMap.
+func _update_crop_prompt() -> void:
+	if _crop_prompt_blocked():
+		crop_prompt.hide_prompt()
+		return
+
+	var result := _cast_crop_ray()
+	if result.is_empty():
+		crop_prompt.hide_prompt()
+		return
+
+	var collider: Object = result.get("collider")
+	if not (collider and collider is Node3D and collider.has_meta("piece_category") and collider.get_meta("piece_category", "") == "garden"):
+		crop_prompt.hide_prompt()
+		return
+
+	var plot: Node3D = collider
+	var state: String = plot.get_meta("crop_state", "empty")
+	var player := get_tree().get_first_node_in_group("player")
+	var tool_id: String = player.current_tool_id if player else ""
+
+	var action_text := ""
+	var key_icon := ""
+	match state:
+		"ready":
+			action_text = "Cosechar"
+		"empty":
+			if tool_id == "seed":
+				action_text = "Sembrar"
+				key_icon = "left_mouse"
+		"growing":
+			if tool_id == "watering_can":
+				action_text = "Regar"
+				key_icon = "left_mouse"
+
+	if action_text == "":
+		crop_prompt.hide_prompt()
+		return
+
+	crop_prompt.global_position = plot.global_position + Vector3(0, 0.6, 0)
+	crop_prompt.show_prompt(action_text, key_icon)
+
+## Mismas guardas que ya usan _handle_tool_use_click()/otros sistemas
+## modales — no tiene sentido mostrar el prompt de la huerta mientras se está
+## construyendo, trabajando, o con una pantalla modal abierta encima.
+func _crop_prompt_blocked() -> bool:
+	var build_system := get_tree().get_first_node_in_group("build_system")
+	if build_system and build_system.equipped_category != "none":
+		return true
+	var work_system := get_tree().get_first_node_in_group("work_system")
+	if work_system and work_system.is_working:
+		return true
+	var phone_system := get_tree().get_first_node_in_group("phone_system")
+	if phone_system and phone_system.is_open:
+		return true
+	var inventory_system := get_tree().get_first_node_in_group("inventory_system")
+	if inventory_system and inventory_system.is_open:
+		return true
+	var pause_system := get_tree().get_first_node_in_group("pause_system")
+	if pause_system and pause_system.is_open:
+		return true
+	return false
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("interact"):

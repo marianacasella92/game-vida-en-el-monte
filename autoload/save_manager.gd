@@ -17,12 +17,79 @@ func _ready() -> void:
 
 ## GDD 4.8: el único "game over" del juego — al llegar la vida a 0, se
 ## recarga el último guardado (no un reinicio total como reset_game()).
-## grant_death_grace() evita un loop de muerte instantánea si ese guardado
-## también tenía hambre/sueño en niveles críticos.
+## grant_death_grace() despierta a la jugadora con el sueño lleno y la vida
+## a un 60% (no al máximo) — el hambre queda tal cual la dejó el guardado, a
+## propósito: el desmayo sigue siendo una consecuencia real, no un reinicio
+## gratis, así que si el hambre seguía crítica puede volver a bajar la vida.
 func _on_player_died() -> void:
 	print("[needs] murió, recargando último guardado")
 	load_game()
 	PlayerNeeds.grant_death_grace()
+	# esperar un frame antes de reaparecer: load_game() borra las piezas
+	# viejas con queue_free() (siguen vivas y colisionando hasta fin de frame)
+	# y ya creó las nuevas — buscar la cama/chequear colisiones ahora vería
+	# duplicados y podría elegir una cama por borrarse o marcar lugares
+	# ocupados por fantasmas. Un frame después solo queda lo recargado.
+	await get_tree().process_frame
+	_respawn_beside_bed()
+
+## Despertar del desmayo al lado de la cama más cercana (no donde se cayó):
+## la ficción es "alguien/vos misma llegaste a la cama y te despertaste ahí".
+## Si no hay ninguna cama construida, se despierta donde cayó (sin castigo
+## extra — consistente con "sin penalización dura" del GDD).
+func _respawn_beside_bed() -> void:
+	var player: CharacterBody3D = get_tree().get_first_node_in_group("player")
+	if not player:
+		return
+
+	var bed: Node3D = null
+	var best_dist := INF
+	for piece in get_tree().get_nodes_in_group("build_piece"):
+		if piece.get_meta("piece_category", "") == "bed":
+			var dist: float = piece.global_position.distance_to(player.global_position)
+			if dist < best_dist:
+				best_dist = dist
+				bed = piece
+	if not bed:
+		print("[needs] sin cama construida — despierta donde cayó")
+		return
+
+	var spot: Variant = _free_spot_beside(bed, player)
+	if spot == null:
+		print("[needs] sin lugar libre al lado de la cama — despierta donde cayó")
+		return
+	# +0.2 de altura: la cama snapea a nivel de grilla pero el piso construido
+	# tiene ~0.1 de espesor — mejor caer esos centímetros que nacer incrustada.
+	player.global_position = spot + Vector3(0, 0.2, 0)
+	player.velocity = Vector3.ZERO
+	print("[needs] despertó al lado de la cama en %s" % [spot])
+
+## Busca un lugar libre pegado a la cama probando los cuatro costados (en el
+## espacio local de la cama, para que acompañe su rotación): primero los dos
+## laterales largos (lo natural al levantarse de una cama), después pie y
+## cabecera. "Libre" = la cápsula del jugador no choca contra nada ahí
+## (paredes, muebles) — la prueba se hace con la forma real de colisión del
+## jugador, levantada 0.15m para no marcar falso choque contra el piso.
+## Distancias derivadas del tamaño real de la cama (bed.tscn: caja de
+## ~1.95 x 3.9) + radio de la cápsula (player.tscn: 0.4) + un margen chico.
+func _free_spot_beside(bed: Node3D, player: CharacterBody3D) -> Variant:
+	var capsule: Shape3D = player.get_node("CollisionShape3D").shape
+	var space_state := player.get_world_3d().direct_space_state
+	var candidates: Array[Vector3] = [
+		Vector3(1.6, 0, 0), Vector3(-1.6, 0, 0),   # laterales largos
+		Vector3(0, 0, 2.6), Vector3(0, 0, -2.6),   # pie y cabecera
+	]
+	for offset in candidates:
+		var spot: Vector3 = bed.global_position + bed.global_transform.basis * offset
+		var query := PhysicsShapeQueryParameters3D.new()
+		query.shape = capsule
+		# la cápsula del jugador está centrada a +0.9 de sus pies; +0.15 extra
+		# de despeje para no chocar contra el piso/terreno sobre el que se apoya
+		query.transform = Transform3D(Basis.IDENTITY, spot + Vector3(0, 1.05, 0))
+		query.exclude = [player.get_rid()]
+		if space_state.intersect_shape(query).is_empty():
+			return spot
+	return null
 
 func save_game() -> void:
 	var build_system: Node = get_tree().get_first_node_in_group("build_system")
