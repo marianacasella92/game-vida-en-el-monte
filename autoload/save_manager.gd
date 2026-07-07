@@ -37,6 +37,7 @@ func _save_systems() -> Dictionary:
 		"inventory": Hotbar,
 		"backpack": Backpack,
 		"player_needs": PlayerNeeds,
+		"time": TimeManager,
 		"build": get_tree().get_first_node_in_group("build_system"),
 	}
 
@@ -199,5 +200,6 @@ func reset_game() -> void:
 	Hotbar.reset()
 	Backpack.reset()
 	PlayerNeeds.reset()
+	TimeManager.reset()
 	DevMode.debug_log("save", "partida reiniciada, recargando escena")
 	get_tree().reload_current_scene()

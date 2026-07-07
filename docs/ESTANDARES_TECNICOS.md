@@ -239,6 +239,12 @@ Bug real (07/07/2026), reportado como "el autoguardado me pisó la construcción
 - Cualquier cambio de formato del save **sube `SAVE_VERSION` y agrega una función de migración** (ver `_migrate_v1()`) — nunca se rompe el guardado existente de la jugadora por un cambio de código. Los saves v1 (sin campo version, con `money`/`pieces` como claves sueltas) se migran solos al cargar; los `crops` legacy de v1 se descartan a propósito (eran de la grilla vieja pre-CropManager, borrada).
 - `_save_systems()` se resuelve en cada llamada (no se cachea en `_ready()`): `build_system` vive en la escena, no es autoload, y puede no existir al arrancar.
 
+## Valores de balance/tuning: archivo de config editable, no constantes en código
+
+El GDD (4.9) pide que la duración del día sea editable sin tocar código, para buscar el balance con playtesting. El patrón quedó armado con el ciclo día/noche: `config/day_night.cfg` (formato INI, se edita con cualquier editor de texto) leído con `ConfigFile` en el `_ready()` del sistema (`TimeManager._load_config()`), con defaults en el código si falta el archivo o una clave — nunca crashea por config incompleta.
+
+**Regla:** cualquier valor de balance futuro que se vaya a ajustar jugando (tiempos de cultivo, decaimiento de hambre/sueño, precios) debería migrar a este patrón — un `.cfg` por sistema en `config/`, no constantes que obligan a tocar código y recargar el editor por cada prueba. Los `@export` en escenas son la alternativa para valores que se ajustan desde el Inspector; el `.cfg` gana cuando se quiere iterar con el juego corriendo o sin abrir Godot.
+
 ## Simulación vs. presentación: la UI no contiene lógica de juego
 
 **Regla general (patrón de estudio):** las pantallas (`Control`) solo pintan estado y llaman servicios; la lógica vive en autoloads. Caso concreto: `marketplace_ui.gd` cobraba la plata y entregaba los ítems ella misma — ahora el catálogo (`Economy.SHOP_CATALOG`) y la compra (`Economy.buy(item_id)`) viven en `Economy`, y la UI solo lee/llama/refresca. Cuando el celular diegético (PXD sección 5) rehaga esta pantalla, reusa el servicio sin duplicar una línea de lógica. Al crear una pantalla nueva, preguntarse: "si mañana esta UI se rehace desde cero, ¿qué lógica se perdería?" — esa lógica va en un servicio, no en la pantalla.

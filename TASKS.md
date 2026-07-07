@@ -112,9 +112,10 @@ Siguiendo `docs/GameDesign/PXD_Documento_Fundacional_v0.2.md` (HUD pequeño/disc
 - Rediseño del minijuego de la clase (sacar los emojis de `drag_icon.gd`/`student_widget.gd`).
 
 ### Sprint 4.4 — Día/noche mínimo
-- [ ] Implementar un ciclo día/noche básico con transición visual simple.
-- [ ] Limitar o cambiar el comportamiento del juego según la hora del día (ej. trabajar de día, dormir de noche).
-- [ ] Asegurar que el sistema no rompa el loop de construcción/trabajo existente.
+- [x] Implementar un ciclo día/noche básico con transición visual simple. **Implementado (07/07/2026), referencia estética Green Hell:** `TimeManager` (autoload, hora/día del mundo, persiste en el save v2 como `"time"`, duración del día editable en `config/day_night.cfg` según GDD 4.9 — default 12 min reales) + `scripts/world/day_night.gd` (nodo `DayNight` en `world.tscn`, solo presentación): el sol (`SunLight`) recorre el cielo de este a oeste entre las 6:00 y las 20:00, el cielo interpola colores por keyframes (amanecer naranja, día celeste, atardecer rojizo, noche azul oscuro), y de noche sale la luna (`MoonLight`, luz fría tenue con disco real en el cielo — ProceduralSky dibuja un disco por DirectionalLight según su `angular_distance`). La luz ambiente acompaña (0.6 día → 0.12 noche). Dormir en la cama salta a la mañana (`wake_hour`) y dispara el **autoguardado real del GDD 4.10** ("al dormir") — el timer periódico queda de red de seguridad. Tecla de debug `F5` (+1 hora, con modo dev activo) para recorrer el ciclo rápido. **Colores/horas de `SKY_KEYFRAMES` pendientes de validación estética de la usuaria** — se ajustan tocando la tabla.
+- [ ] Limitar o cambiar el comportamiento del juego según la hora del día (ej. trabajar de día, dormir de noche) — `TimeManager.is_night()` ya está expuesto para esto, falta decidir/conectar las reglas.
+- [ ] Asegurar que el sistema no rompa el loop de construcción/trabajo existente — pendiente de la pasada de prueba de la usuaria.
+- **Pendiente conocido:** el tiempo (y el hambre/sueño, comportamiento previo) siguen corriendo con el menú de pausa abierto — una pausa real (`get_tree().paused` + process_mode por sistema) queda para más adelante.
 
 ### Sprint 4.5 — Pulido y cierre del sprint
 - [ ] Revisar balance de tiempos, costos y feedback de interacción.

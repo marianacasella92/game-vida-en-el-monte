@@ -44,3 +44,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		# sin esperar los minutos reales de descuido de hambre/sueño.
 		PlayerNeeds.damage(25.0)
 		print("[dev_mode] -25 vida (vida=%.0f)" % PlayerNeeds.health)
+	elif event.is_action_pressed("debug_advance_time") and enabled:
+		# para recorrer el ciclo día/noche rápido (amanecer/atardecer/luna)
+		# sin esperar el día real de config/day_night.cfg.
+		TimeManager.advance_hours(1.0)
+		print("[dev_mode] +1 hora -> día %d, %s" % [TimeManager.day, TimeManager.clock_text()])

@@ -10,6 +10,7 @@ extends Control
 
 const PANEL_SIZE := Vector2(480, 420)
 
+var clock_label: Label
 var money_label: Label
 var item_list: VBoxContainer
 var save_feedback: Label
@@ -48,6 +49,13 @@ func _ready() -> void:
 	title.add_theme_font_size_override("font_size", 22)
 	vbox.add_child(title)
 
+	# la hora en el celular es parte del diseño (PXD 5.3: la pantalla de
+	# inicio muestra el reloj) — este label es el adelanto mínimo hasta que
+	# exista el home screen real con apps
+	clock_label = Label.new()
+	clock_label.add_theme_color_override("font_color", Color(1, 1, 1, 0.7))
+	vbox.add_child(clock_label)
+
 	money_label = Label.new()
 	vbox.add_child(money_label)
 
@@ -72,7 +80,14 @@ func _ready() -> void:
 	reset_button.pressed.connect(_on_reset_pressed)
 	vbox.add_child(reset_button)
 
+## el reloj sigue corriendo mientras el celular está abierto (el tiempo del
+## mundo no se pausa) — se actualiza por frame, no solo en refresh()
+func _process(_delta: float) -> void:
+	if visible:
+		clock_label.text = "Día %d — %s" % [TimeManager.day, TimeManager.clock_text()]
+
 func refresh() -> void:
+	clock_label.text = "Día %d — %s" % [TimeManager.day, TimeManager.clock_text()]
 	money_label.text = "Plata: $ %d" % Economy.money
 	save_feedback.text = ""
 	_update_reset_button()
