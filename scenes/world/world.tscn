@@ -1,8 +1,9 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=13 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="1"]
 [ext_resource type="Script" path="res://scripts/world.gd" id="2"]
 [ext_resource type="Script" path="res://scripts/world/day_night.gd" id="3"]
+[ext_resource type="Texture2D" path="res://assets/enviroment/moon.png" id="4"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_1"]
 
@@ -14,6 +15,22 @@ background_mode = 2
 sky = SubResource("Sky_1")
 ambient_light_source = 3
 ambient_light_energy = 0.6
+glow_enabled = true
+glow_intensity = 0.8
+glow_bloom = 0.1
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_moon"]
+transparency = 1
+blend_mode = 1
+shading_mode = 0
+albedo_color = Color(0.55, 0.58, 0.68, 1)
+albedo_texture = ExtResource("4")
+billboard_mode = 1
+disable_receive_shadows = true
+
+[sub_resource type="QuadMesh" id="QuadMesh_moon"]
+material = SubResource("StandardMaterial3D_moon")
+size = Vector2(70, 70)
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1"]
 albedo_color = Color(0.32, 0.5, 0.22, 1)
@@ -48,6 +65,14 @@ shadow_blur = 3.0
 
 [node name="DayNight" type="Node3D" parent="."]
 script = ExtResource("3")
+
+[node name="MoonPivot" type="Node3D" parent="."]
+visible = false
+
+[node name="MoonSprite" type="MeshInstance3D" parent="MoonPivot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 800)
+mesh = SubResource("QuadMesh_moon")
+cast_shadow = 0
 
 [node name="Ground" type="StaticBody3D" parent="."]
 
