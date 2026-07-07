@@ -111,7 +111,7 @@ func water_plot(plot: Node, _inventory=null) -> void:
 	if plot.get_meta("crop_state", "empty") != "growing":
 		return
 	plot.set_meta("watered_until", Time.get_unix_time_from_system() + watering_duration)
-	print("[crop] %s regada, sigue creciendo por %.1fs más" % [plot.name, watering_duration])
+	DevMode.debug_log("crop", "%s regada, sigue creciendo por %.1fs más" % [plot.name, watering_duration])
 
 ## El segundo parámetro no se usa acá (cosechar entrega el ítem vía
 ## Backpack.add_item(), no depende de qué hotbar se pase) — se mantiene por
@@ -192,7 +192,7 @@ func _set_plant_stage(plot: Node, stage: int) -> void:
 		existing.free()
 
 	var progress: float = float(plot.get_meta("crop_progress", 0.0))
-	print("[crop] %s -> etapa %d/%d (%.1fs de riego acumulado / %.1fs necesarios)" % [plot.name, stage, GROWTH_STAGE_SCENES.size(), progress, crop_growth_time])
+	DevMode.debug_log("crop", "%s -> etapa %d/%d (%.1fs de riego acumulado / %.1fs necesarios)" % [plot.name, stage, GROWTH_STAGE_SCENES.size(), progress, crop_growth_time])
 
 	if stage < 0 or stage > GROWTH_STAGE_SCENES.size():
 		return

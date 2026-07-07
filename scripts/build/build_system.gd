@@ -148,13 +148,13 @@ var _inventory_item_to_piece: Dictionary = {}
 ## (ver _exit_build_mode()).
 var _equipped_via_inventory: bool = false
 
+## El catálogo abierto se registra en UIState con este id — el resto de los
+## bloqueos (otras pantallas, HUD, prompts) salen de ahí solos.
+const MODAL_ID := &"build_catalog"
+
 @onready var camera: Camera3D = get_node("../Head/Camera3D")
 @onready var player: CharacterBody3D = get_parent()
 @onready var catalog_menu: Control = $BuildMenuLayer/Catalog
-@onready var work_system: Node = get_node("../WorkSystem")
-@onready var phone_system: Node = get_node("../PhoneSystem")
-@onready var inventory_system: Node = get_node("../InventorySystem")
-@onready var pause_system: Node = get_node("../PauseSystem")
 
 var equipped_category: String = "none"
 var equipped_variant: String = ""
@@ -254,15 +254,10 @@ func _menu_catalog() -> Dictionary:
 func _piece_scene(category: String, variant: String) -> PackedScene:
 	return CATALOG[category]["variants"][variant]["scene"]
 
-## "En modo construcción" no es solo "catálogo abierto" (menu_open): también
-## cuenta tener una pieza equipada con el catálogo ya cerrado (fantasma en
-## mano). pause_system.gd lo necesita para no abrirse en el mismo Escape que
-## ya usó _unhandled_input acá abajo para sacar la pieza de la mano.
-func is_active() -> bool:
-	return menu_open or equipped_category != "none"
-
 func _unhandled_input(event: InputEvent) -> void:
-	if work_system.is_working or phone_system.is_open or inventory_system.is_open or pause_system.is_open:
+	# el catálogo propio no bloquea (hay que poder cerrarlo/elegir con él
+	# abierto); cualquier OTRA pantalla modal sí.
+	if UIState.is_any_modal_open_except(MODAL_ID):
 		return
 	if event.is_action_pressed("close_window"):
 		if menu_open:
@@ -290,6 +285,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _open_catalog() -> void:
 	menu_open = true
+	UIState.open(MODAL_ID)
 	catalog_menu.setup(_menu_catalog())
 	if ghost:
 		ghost.visible = false
@@ -298,6 +294,7 @@ func _open_catalog() -> void:
 
 func _close_catalog() -> void:
 	menu_open = false
+	UIState.close(MODAL_ID)
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	catalog_menu.close()
 	if ghost:
@@ -308,6 +305,7 @@ func _exit_build_mode() -> void:
 	equipped_variant = ""
 	_equipped_via_inventory = false
 	menu_open = false
+	UIState.close(MODAL_ID)
 	manual_flip = false
 	rotation_steps = 0
 	_clear_demolish_highlight()
@@ -336,7 +334,7 @@ func _on_piece_chosen(category: String, variant: String) -> void:
 ## una pieza equipada de esta forma, la suelta. Nunca toca una pieza
 ## equipada desde el catálogo (_equipped_via_inventory la distingue).
 func _on_hotbar_changed() -> void:
-	if work_system.is_working or phone_system.is_open or inventory_system.is_open or pause_system.is_open or menu_open:
+	if UIState.is_any_modal_open():
 		return
 	var selected_item_id: String = Hotbar.get_selected_item().get("id", "")
 	var piece: Dictionary = _inventory_item_to_piece.get(selected_item_id, {})
@@ -443,7 +441,7 @@ func _place_piece() -> void:
 	get_tree().current_scene.add_child(piece)
 	piece.global_position = ghost.global_position
 	piece.global_rotation = ghost.global_rotation
-	print("[build] colocada %s/%s en %s — en grupo build_piece=%s" % [equipped_category, equipped_variant, piece.global_position, piece.is_in_group("build_piece")])
+	DevMode.debug_log("build", "colocada %s/%s en %s" % [equipped_category, equipped_variant, piece.global_position])
 
 	_register_slot(equipped_category, piece.global_position)
 	if equipped_category == "floor":
@@ -505,7 +503,16 @@ func _refund_piece_contents(piece: Node) -> void:
 			Backpack.add_item("seed", "Semilla de Zanahoria")
 		CropManager.unregister_plantable(piece)
 
-## Usado por SaveManager (autoload/save_manager.gd) para persistir lo construido.
+## Contrato estándar de guardado (get_save_data/apply_save_data) — mismo que
+## Hotbar/Backpack/PlayerNeeds/Economy. SaveManager solo conoce este par de
+## métodos, no los nombres internos de abajo.
+func get_save_data() -> Dictionary:
+	return {"pieces": serialize_pieces()}
+
+func apply_save_data(data: Dictionary) -> void:
+	clear_pieces()
+	load_pieces(data.get("pieces", []))
+
 func serialize_pieces() -> Array:
 	var result: Array = []
 	for piece in get_tree().get_nodes_in_group("build_piece"):
@@ -632,7 +639,9 @@ func _snap_wall(point: Vector3) -> Dictionary:
 		return {"position": Vector3(edge_x, y, edge_z), "rotation": rot}
 
 func _process(_delta: float) -> void:
-	if menu_open or work_system.is_working or phone_system.is_open or inventory_system.is_open or pause_system.is_open:
+	# incluye el catálogo propio: con cualquier pantalla abierta, el fantasma
+	# no se mueve ni se valida.
+	if UIState.is_any_modal_open():
 		return
 
 	if equipped_category == "demolish":

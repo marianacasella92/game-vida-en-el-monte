@@ -6,4 +6,4 @@ extends "res://scripts/build/proximity_interactable.gd"
 
 func _on_interact() -> void:
 	PlayerNeeds.sleep_now()
-	print("[needs] durmió, sueño=%.0f" % PlayerNeeds.sleep)
+	DevMode.debug_log("needs", "durmió, sueño=%.0f" % PlayerNeeds.sleep)

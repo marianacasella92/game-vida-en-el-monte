@@ -1,38 +1,14 @@
 extends Control
 
-## Panel del celular: marketplace con ítems placeholder + botón de guardado
-## manual (Milestone 3). Construido por código en _ready(), mismo estilo que
-## catalog_menu.gd, en vez de armar el layout a mano en el editor.
+## Panel del celular: marketplace + botón de guardado manual (Milestone 3).
+## Construido por código en _ready(), mismo estilo que catalog_menu.gd.
+##
+## Esta pantalla es SOLO presentación: el catálogo de la tienda y la lógica
+## de compra viven en Economy (Economy.SHOP_CATALOG / Economy.buy()) — así la
+## futura app de marketplace del celular diegético (PXD sección 5) reusa el
+## mismo servicio sin duplicar nada.
 
 const PANEL_SIZE := Vector2(480, 420)
-
-## item_id -> {"label": String, "price": int, "description": String}
-## "crate"/"bed"/"desk" son piezas de construcción físicas: comprarlas las
-## suma a la MOCHILA (nunca directo al hotbar, ver "skip_hotbar" abajo) —
-## recién cuando la jugadora las arrastra al hotbar y las selecciona a mano,
-## build_system.gd entra en modo construcción para esa pieza (ver
-## "inventory_item" en su CATALOG), y se gasta 1 del stack al colocarla con
-## éxito. Se pueden comprar más de una vez (cada compra suma una unidad más
-## al stack). "tool"/"decor" siguen siendo placeholder, sin conexión todavía
-## (ojo: este "decor" es un ítem genérico de marketplace, no tiene relación
-## con la categoría "decor" del catálogo de construcción).
-##
-## "skip_hotbar" (opcional, bool): usa Backpack.add_item_no_hotbar() en vez
-## de Backpack.add_item(). Bug real (07/07/2026): con add_item() normal
-## (que intenta el hotbar primero), comprar una pieza de construcción podía
-## caer justo en el slot del hotbar ya seleccionado y entrar en modo
-## construcción sola, sin que la jugadora hiciera nada — ver
-## autoload/backpack.gd. Toda pieza de construcción nueva que se compre
-## desde acá necesita este flag en true.
-const ITEMS := {
-	"seeds": {"label": "Semilla de Zanahoria", "price": 0, "description": "Para plantar en la huerta.", "grants_item": {"id": "seed", "name": "Semilla de Zanahoria"}},
-	"watering_can": {"label": "Regadera", "price": 0, "description": "Para regar los cultivos plantados — riego manual, GDD 4.5.", "grants_item": {"id": "watering_can", "name": "Regadera"}},
-	"tool": {"label": "Herramienta", "price": 35, "description": "Herramienta genérica de trabajo rural."},
-	"decor": {"label": "Adorno", "price": 15, "description": "Decoración simple para la casa."},
-	"crate": {"label": "Cajón de madera", "price": 25, "description": "Se suma a la mochila — arrastralo al hotbar y seleccionalo para entrar en modo construcción y colocarlo.", "grants_item": {"id": "crate", "name": "Cajón de madera"}, "skip_hotbar": true},
-	"bed": {"label": "Cama simple", "price": 40, "description": "Se suma a la mochila — arrastrala al hotbar y seleccionala para entrar en modo construcción y colocarla. Dormir restaura el sueño.", "grants_item": {"id": "bed", "name": "Cama simple"}, "skip_hotbar": true},
-	"desk": {"label": "Escritorio", "price": 0, "description": "Se suma a la mochila — arrastralo al hotbar y seleccionalo para entrar en modo construcción y colocarlo. Sentarse a trabajar.", "grants_item": {"id": "desk", "name": "Escritorio"}, "skip_hotbar": true},
-}
 
 var money_label: Label
 var item_list: VBoxContainer
@@ -104,8 +80,8 @@ func refresh() -> void:
 	for child in item_list.get_children():
 		child.queue_free()
 
-	for item_id in ITEMS:
-		var item: Dictionary = ITEMS[item_id]
+	for item_id in Economy.SHOP_CATALOG:
+		var item: Dictionary = Economy.SHOP_CATALOG[item_id]
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 12)
 
@@ -117,31 +93,20 @@ func refresh() -> void:
 		row.add_child(info)
 
 		var buy_button := Button.new()
-		if item.has("grants_item"):
-			# consumible: se puede comprar cuantas veces se quiera
-			buy_button.text = "Comprar"
-			buy_button.pressed.connect(_on_buy_consumable_pressed.bind(item["price"], item["grants_item"], item.get("skip_hotbar", false)))
-		elif Economy.purchased_items.has(item_id):
+		# los desbloqueos únicos ya comprados se muestran agotados; los ítems
+		# físicos (grants_item) se pueden comprar siempre
+		if not item.has("grants_item") and Economy.purchased_items.has(item_id):
 			buy_button.text = "Comprado"
 			buy_button.disabled = true
 		else:
 			buy_button.text = "Comprar"
-			buy_button.pressed.connect(_on_buy_pressed.bind(item_id, item["price"]))
+			buy_button.pressed.connect(_on_buy_pressed.bind(item_id))
 		row.add_child(buy_button)
 
 		item_list.add_child(row)
 
-func _on_buy_pressed(item_id: String, price: int) -> void:
-	Economy.purchase_item(item_id, price)
-	refresh()
-
-func _on_buy_consumable_pressed(price: int, grants_item: Dictionary, skip_hotbar: bool = false) -> void:
-	if not Economy.spend_money(price):
-		return
-	if skip_hotbar:
-		Backpack.add_item_no_hotbar(grants_item["id"], grants_item["name"])
-	else:
-		Backpack.add_item(grants_item["id"], grants_item["name"])
+func _on_buy_pressed(item_id: String) -> void:
+	Economy.buy(item_id)
 	refresh()
 
 func _on_save_pressed() -> void:

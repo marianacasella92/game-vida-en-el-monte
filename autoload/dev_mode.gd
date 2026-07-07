@@ -11,6 +11,16 @@ signal toggled(enabled: bool)
 
 var enabled: bool = false
 
+## Log de desarrollo: reemplaza los print() de gameplay ("[crop] ...",
+## "[build] ...") — solo imprime con el modo desarrollador activo, así una
+## build jugable no spamea la consola en cada click. push_error/push_warning
+## NO pasan por acá: los errores se muestran siempre.
+## (Se llama debug_log y no "log" para no pisar la función matemática log()
+## de GlobalScope.)
+func debug_log(tag: String, message: String) -> void:
+	if enabled:
+		print("[%s] %s" % [tag, message])
+
 ## Plata que suma cada F2 con el modo desarrollador activo — para poder
 ## probar el marketplace (comprar cama/escritorio/cajón) sin tener que jugar
 ## el loop económico entero cada vez.

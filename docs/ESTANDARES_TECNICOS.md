@@ -32,7 +32,27 @@ Si en la misma función se saca un nodo hijo y se agrega uno nuevo **con el mism
 
 **Regla:** cuando se reemplaza un nodo por otro de igual nombre en la misma función, usar `.free()` (inmediato) en vez de `.queue_free()`. Visto en `CropManager._set_plant_stage()` al ir cambiando el mesh de la planta entre etapas de crecimiento.
 
-## Godot 3 → 4: no existe `.translation`
+## `queue_free()` y consultas de física/grupos en el mismo frame: los "fantasmas" siguen ahí
+
+Otra cara del mismo problema de arriba: un nodo `queue_free()`-ado sigue **vivo, en sus grupos y colisionando** hasta el final del frame. Si en ese mismo frame se recorre un grupo (`get_nodes_in_group`) o se hace una consulta de física (`intersect_shape`/`intersect_ray`), los nodos por borrarse aparecen como si nada — y los recién creados también, así que se ven duplicados.
+
+**Caso real (07/07/2026):** al despertar del desmayo, `load_game()` hace `clear_pieces()` (queue_free de todo lo construido) + `load_pieces()` (recrea lo guardado) — si `_respawn_beside_bed()` corriera en ese mismo frame, vería dos copias de cada pieza: podría elegir una cama por borrarse, o marcar como "ocupados" lugares bloqueados solo por colliders fantasma.
+
+**Regla:** después de un borrado masivo con `queue_free()` + recreación, cualquier lógica que consulte grupos o física espera un frame (`await get_tree().process_frame`) antes de correr. Ver `save_manager.gd::_on_player_died()`.
+
+## Editar `.tscn` a mano: los enums son números — verificarlos, no adivinarlos
+
+Bug real (07/07/2026, reportado como "el círculo quedó enorme atravesando el corazón"): al armar el corazón de dos capas se escribió `stretch_mode = 1` en un `TextureRect` asumiendo que 1 era "escalar" — pero en `TextureRect.StretchMode`, **1 es `STRETCH_TILE`** (repetir la textura a tamaño nativo, 268px dentro de una caja de 98px = se ve un pedazo gigante). El valor correcto para "escalar manteniendo aspecto, centrado" es `5` (`STRETCH_KEEP_ASPECT_CENTERED`), que es el que ya usaban los demás íconos del HUD.
+
+**Regla:** al escribir propiedades enum a mano en un `.tscn`, no adivinar el número — verificar contra la documentación de la clase o contra otro nodo del proyecto que ya use el valor correcto (los íconos existentes del HUD son la referencia rápida para `TextureRect`). Si un ícono/textura se ve gigante o recortado, sospechar primero de `stretch_mode`/`expand_mode` antes que del asset.
+
+## Ícono "medidor" de dos capas (corazón de vida): TextureProgressBar + marco fijo encima
+
+Técnica del corazón que se vacía (PXD sección 2, reusable para cualquier ícono-medidor futuro): el asset se separa en dos PNG **del mismo lienzo** (acá los hizo la usuaria: `icon_health_heart.png` + `icon_health_frame.png`), y en la escena son dos capas dentro de un `Control` — abajo un `TextureProgressBar` con la parte que se vacía (`texture_progress`, `fill_mode = 3` BOTTOM_TO_TOP para que se recorte de arriba hacia abajo, `nine_patch_stretch = true` para que escale al tamaño del HUD), encima un `TextureRect` con la parte fija. Mismo lienzo = las dos capas quedan alineadas con solo anclarlas al mismo rect. Ver `player.tscn` (`Hud/Root/HealthIcon`) y `hud.gd::_update_health()`.
+
+## Ediciones externas a `project.godot` (autoloads, input map): recargar el proyecto
+
+Con el flujo de trabajo de este proyecto (Claude edita archivos mientras el editor de Godot está abierto), cualquier cambio externo a `project.godot` — un autoload nuevo, una acción de input nueva — **no se aplica hasta recargar el proyecto** (Proyecto → Volver a Cargar el Proyecto Actual, o cerrar y reabrir Godot). Síntoma típico (visto 07/07/2026 al agregar `UIState`): lluvia de `Parse Error: Identifier "X" not declared in the current scope` sobre un autoload que sí está registrado en el archivo — el parser del editor todavía trabaja con la lista vieja. Los `.gd`/`.tscn` sueltos sí se recargan solos; `project.godot` no.
 
 `Node3D` en Godot 4 no tiene la propiedad `translation` (quedó de Godot 3) — es `.position`. Si algo tipeado/pegado de un tutorial o código viejo usa `.translation`, va a tirar error de propiedad inválida.
 
@@ -199,6 +219,29 @@ Cama, escritorio y cajón de madera pasaron de "desbloqueo permanente" (`Economy
 Bug real (07/07/2026), reportado como "el autoguardado me pisó la construcción": `save_game()` (`save_manager.gd`) solo escribe a disco, nunca toca el mundo — no podía ser el culpable. El mecanismo real: `PlayerNeeds._process_health()` baja la vida de a poco si hambre o sueño quedan descuidados (`is_neglected()`) y, al llegar a 0, emite `died`; `SaveManager._on_player_died()` escucha esa señal y llama `load_game()`, que sí revierte piezas construidas/inventario/plata al último guardado — **sin ningún feedback visual**. Absorta construyendo (sin comer/dormir), la jugadora no se enteraba de que había "muerto" hasta ver su casa a medio construir desaparecer.
 
 **Regla:** cualquier mecánica que revierta/descarte estado del jugador (esta es la única del juego, a propósito según el GDD) tiene que dar aviso explícito en el momento en que pasa — nunca una recarga silenciosa. Ver `hud.gd::_on_player_died()`, conectado a `PlayerNeeds.died`, que muestra un mensaje en pantalla por unos segundos. Si se agrega alguna otra mecánica futura que dispare `load_game()` fuera del arranque normal de la escena, necesita el mismo tipo de aviso.
+
+## UIState: las pantallas modales se registran, nadie pregunta sistema por sistema
+
+**Refactor de arquitectura (07/07/2026), pedido explícito de la usuaria ("las bases importan por todo lo que viene después"):** antes había ~10 lugares con la misma cadena `work_system.is_working or phone_system.is_open or inventory_system.is_open or pause_system.is_open` — cada pantalla nueva obligaba a tocar todos, y olvidarse de uno ya había causado bugs reales. Ahora existe el autoload `UIState`: cada pantalla modal se registra al abrir/cerrar (`UIState.open(&"phone")` / `UIState.close(&"phone")`, idempotentes) y todo el mundo consulta `UIState.is_any_modal_open()` (o `is_any_modal_open_except(id)` para el toggle de una pantalla desde su propia tecla).
+
+**Ids registrados hoy:** `&"phone"`, `&"inventory"`, `&"pause"`, `&"work"`, `&"build_catalog"`.
+
+**Reglas:**
+- Toda pantalla modal nueva declara su `MODAL_ID`, llama `UIState.open/close` en su abrir/cerrar (¡en TODOS los caminos de cierre! — `build_system._exit_build_mode()` cierra el catálogo sin pasar por `_close_catalog()`, y también registra el cierre), y usa `close_window` (Q) para cerrarse.
+- **Estados de gameplay NO van en UIState:** "pieza de construcción equipada" (`build_system.equipped_category`) bloquea cosas pero no es una pantalla — se consulta directo donde hace falta (pausa, prompt de huerta). `work_system.is_working` está en los dos mundos a propósito: registra `&"work"` como modal Y mantiene su flag propio porque `PlayerNeeds` lo usa para el desgaste por esfuerzo (gameplay).
+- Cambio de comportamiento consciente al unificar: con el catálogo de construcción abierto ahora tampoco se puede caminar (antes sí — era una inconsistencia de guardas escritas a mano, no una decisión).
+
+## Guardado versionado + contrato único (formato v2)
+
+**El archivo de guardado lleva `"version"`.** Formato v2 (07/07/2026): un diccionario por sistema (`economy`, `inventory`, `backpack`, `player_needs`, `build`), cada uno producido/consumido por el contrato estándar `get_save_data()`/`apply_save_data()` que ahora implementan **todos** los sistemas persistibles. `SaveManager` solo mantiene el registro `_save_systems()` — agregar un sistema persistible nuevo (día/noche, clima) es implementarle el contrato y sumarlo ahí, nada más.
+
+**Reglas:**
+- Cualquier cambio de formato del save **sube `SAVE_VERSION` y agrega una función de migración** (ver `_migrate_v1()`) — nunca se rompe el guardado existente de la jugadora por un cambio de código. Los saves v1 (sin campo version, con `money`/`pieces` como claves sueltas) se migran solos al cargar; los `crops` legacy de v1 se descartan a propósito (eran de la grilla vieja pre-CropManager, borrada).
+- `_save_systems()` se resuelve en cada llamada (no se cachea en `_ready()`): `build_system` vive en la escena, no es autoload, y puede no existir al arrancar.
+
+## Simulación vs. presentación: la UI no contiene lógica de juego
+
+**Regla general (patrón de estudio):** las pantallas (`Control`) solo pintan estado y llaman servicios; la lógica vive en autoloads. Caso concreto: `marketplace_ui.gd` cobraba la plata y entregaba los ítems ella misma — ahora el catálogo (`Economy.SHOP_CATALOG`) y la compra (`Economy.buy(item_id)`) viven en `Economy`, y la UI solo lee/llama/refresca. Cuando el celular diegético (PXD sección 5) rehaga esta pantalla, reusa el servicio sin duplicar una línea de lógica. Al crear una pantalla nueva, preguntarse: "si mañana esta UI se rehace desde cero, ¿qué lógica se perdería?" — esa lógica va en un servicio, no en la pantalla.
 
 ## Cerrar ventanas (`Q`) vs. menú de pausa (`Esc`): acciones separadas a propósito
 

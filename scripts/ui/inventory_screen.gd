@@ -39,7 +39,9 @@ const KEY_ICONS := [
 	preload("res://assets/hud/keyset/White/9.png"),
 ]
 
-const ESC_ICON := preload("res://assets/hud/keyset/White/esc.png")
+## la mochila se cierra con Q (acción close_window) — Esc es exclusivo del
+## menú de pausa, ver docs/ESTANDARES_TECNICOS.md
+const CLOSE_KEY_ICON := preload("res://assets/hud/keyset/White/Q.png")
 
 const SLOT_SIZE := Vector2(72, 72)
 const HOTBAR_SLOT_SIZE := Vector2(56, 56)
@@ -214,7 +216,7 @@ func _ready() -> void:
 	add_child(esc_hint)
 
 	var esc_icon := TextureRect.new()
-	esc_icon.texture = ESC_ICON
+	esc_icon.texture = CLOSE_KEY_ICON
 	esc_icon.custom_minimum_size = Vector2(28, 28)
 	esc_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	esc_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED

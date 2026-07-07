@@ -31,8 +31,8 @@ func add_item(item_id: String, item_name: String, stack: int = 1) -> void:
 ## Hotbar.inventory_changed para saber cuándo el jugador equipa una pieza)
 ## no tiene forma de distinguir eso de "la jugadora eligió esto a propósito"
 ## — entraba en modo construcción solo, sin que nadie lo pidiera. Usado por
-## marketplace_ui.gd para los ítems marcados "skip_hotbar" en su tabla de
-## ITEMS: tienen que llegar solo a la mochila, y equiparse recién cuando la
+## Economy.buy() para los ítems marcados "skip_hotbar" en SHOP_CATALOG:
+## tienen que llegar solo a la mochila, y equiparse recién cuando la
 ## jugadora los arrastra al hotbar ella misma.
 func add_item_no_hotbar(item_id: String, item_name: String, stack: int = 1) -> void:
 	_add_to_backpack(item_id, item_name, stack)

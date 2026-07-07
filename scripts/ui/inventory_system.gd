@@ -1,17 +1,12 @@
 extends Node3D
 
 ## Pantalla de mochila (PXD_Diseno_HUD_UI_v1.md, sección 4): se abre/cierra
-## con `open_inventory` desde cualquier punto del mundo, sin necesidad de
-## acercarse a nada. Mismo patrón que phone_system.gd — bloquea mouse-look
-## y movimiento mientras está abierta (ver player.gd, que revisa
-## inventory_system.is_open).
+## con `open_inventory` desde cualquier punto del mundo. Registrada en
+## UIState como &"inventory" — el bloqueo de mouse-look/movimiento/otras
+## pantallas sale de ahí.
 
-var is_open: bool = false
+const MODAL_ID := &"inventory"
 
-@onready var work_system: Node = get_node("../WorkSystem")
-@onready var build_system: Node = get_node("../BuildSystem")
-@onready var phone_system: Node = get_node("../PhoneSystem")
-@onready var pause_system: Node = get_node("../PauseSystem")
 @onready var panel: Control = $InventoryUILayer/Panel
 
 func _ready() -> void:
@@ -21,26 +16,26 @@ func _ready() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if not event.is_action_pressed("open_inventory"):
 		return
-	if work_system.is_working or build_system.menu_open or phone_system.is_open or pause_system.is_open:
+	if UIState.is_any_modal_open_except(MODAL_ID):
 		return
-	if is_open:
+	if UIState.is_open(MODAL_ID):
 		close_inventory()
 	else:
 		open_inventory()
 
 func open_inventory() -> void:
-	is_open = true
+	UIState.open(MODAL_ID)
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	panel.visible = true
 	panel.refresh()
 
 func close_inventory() -> void:
-	is_open = false
+	UIState.close(MODAL_ID)
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	panel.visible = false
 
 ## "close_window" (Q) — ver el comentario en phone_system.gd sobre por qué
 ## está separada de "ui_cancel" (Esc, exclusiva del menú de pausa).
 func _process(_delta: float) -> void:
-	if is_open and Input.is_action_just_pressed("close_window"):
+	if UIState.is_open(MODAL_ID) and Input.is_action_just_pressed("close_window"):
 		close_inventory()

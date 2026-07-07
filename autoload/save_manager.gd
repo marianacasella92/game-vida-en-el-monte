@@ -3,9 +3,22 @@ extends Node
 ## Guardado manual (botón en el celular) + autoguardado periódico (Milestone 3).
 ## El trigger real de autoguardado ("dormir") queda pendiente hasta que exista
 ## el ciclo día/noche — este timer es un placeholder mientras tanto.
+##
+## Arquitectura (07/07/2026): todos los sistemas persistibles usan el mismo
+## contrato `get_save_data() -> Dictionary` / `apply_save_data(data)`, y
+## SaveManager solo mantiene el registro de _save_systems() — agregar un
+## sistema nuevo que persista (día/noche, clima) es implementarle el contrato
+## y sumarlo a ese diccionario, sin lógica ad-hoc acá. Antes cada sistema se
+## cableaba a mano con nombres distintos, y eso causó dos bugs reales (el
+## inventario que nunca se guardaba, la parcela que no crecía al recargar).
+##
+## El archivo lleva "version": los guardados viejos (v1, sin campo version)
+## se migran al cargar (_migrate_v1) — nunca se pisa el progreso de la
+## jugadora por un cambio de formato.
 
 const SAVE_PATH := "user://savegame.json"
 const AUTOSAVE_INTERVAL := 300.0
+const SAVE_VERSION := 2
 
 func _ready() -> void:
 	var timer := Timer.new()
@@ -15,6 +28,88 @@ func _ready() -> void:
 	add_child(timer)
 	PlayerNeeds.died.connect(_on_player_died)
 
+## clave del archivo de guardado -> sistema que implementa el contrato.
+## Se resuelve en cada llamada (no en _ready) porque build_system vive en la
+## escena, no es un autoload — puede no existir todavía al arrancar.
+func _save_systems() -> Dictionary:
+	return {
+		"economy": Economy,
+		"inventory": Hotbar,
+		"backpack": Backpack,
+		"player_needs": PlayerNeeds,
+		"build": get_tree().get_first_node_in_group("build_system"),
+	}
+
+func save_game() -> void:
+	var data := {"version": SAVE_VERSION}
+	var systems := _save_systems()
+	for key in systems:
+		var system = systems[key]
+		if system:
+			data[key] = system.get_save_data()
+
+	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	if not file:
+		push_error("[save] no se pudo abrir %s para escribir (error=%d) — la partida NO se guardó" % [SAVE_PATH, FileAccess.get_open_error()])
+		return
+	file.store_string(JSON.stringify(data))
+	_print_save_summary(data)
+
+## Lista en detalle qué se guardó (solo con el modo desarrollador activo),
+## desglosando piezas por categoría — para ver de un vistazo si algo colocado
+## no llegó a contarse (ej. el bug de los pisos que no se guardaban).
+func _print_save_summary(data: Dictionary) -> void:
+	if not DevMode.enabled:
+		return
+	var pieces: Array = data.get("build", {}).get("pieces", [])
+	var by_category: Dictionary = {}
+	for entry in pieces:
+		var category: String = entry.get("category", "?")
+		by_category[category] = by_category.get(category, 0) + 1
+
+	print("[save] ---- partida guardada (v%d) ----" % data["version"])
+	print("[save] economy=%s" % [data.get("economy", {})])
+	print("[save] hotbar=%s" % [data.get("inventory", {})])
+	print("[save] backpack=%s" % [data.get("backpack", {})])
+	print("[save] player_needs=%s" % [data.get("player_needs", {})])
+	print("[save] pieces guardadas=%d -> %s" % [pieces.size(), by_category])
+	print("[save] ------------------------------")
+
+func load_game() -> void:
+	if not FileAccess.file_exists(SAVE_PATH):
+		return
+
+	var file := FileAccess.open(SAVE_PATH, FileAccess.READ)
+	var data = JSON.parse_string(file.get_as_text())
+	if typeof(data) != TYPE_DICTIONARY:
+		return
+
+	if int(data.get("version", 1)) < 2:
+		data = _migrate_v1(data)
+
+	var systems := _save_systems()
+	for key in systems:
+		var system = systems[key]
+		# el has() evita pisar defaults de partida nueva (ej. la semilla
+		# inicial del hotbar) si el archivo no trae la clave — mismo criterio
+		# que ya se usaba antes del refactor.
+		if system and data.has(key):
+			system.apply_save_data(data[key])
+
+## Guardados anteriores al formato versionado (v1): plata/compras y piezas
+## eran claves sueltas de primer nivel. Los "crops" legacy (la grilla vieja
+## pre-CropManager, borrada el 07/07/2026) se descartan a propósito — las
+## parcelas reales viajan dentro de "pieces" con su metadata.
+func _migrate_v1(old: Dictionary) -> Dictionary:
+	var data := {"version": SAVE_VERSION}
+	data["economy"] = {"money": old.get("money", 0), "purchased_items": old.get("purchased_items", {})}
+	data["build"] = {"pieces": old.get("pieces", [])}
+	for key in ["inventory", "backpack", "player_needs"]:
+		if old.has(key):
+			data[key] = old[key]
+	DevMode.debug_log("save", "guardado v1 migrado a v%d" % SAVE_VERSION)
+	return data
+
 ## GDD 4.8: el único "game over" del juego — al llegar la vida a 0, se
 ## recarga el último guardado (no un reinicio total como reset_game()).
 ## grant_death_grace() despierta a la jugadora con el sueño lleno y la vida
@@ -22,7 +117,7 @@ func _ready() -> void:
 ## propósito: el desmayo sigue siendo una consecuencia real, no un reinicio
 ## gratis, así que si el hambre seguía crítica puede volver a bajar la vida.
 func _on_player_died() -> void:
-	print("[needs] murió, recargando último guardado")
+	DevMode.debug_log("needs", "murió, recargando último guardado")
 	load_game()
 	PlayerNeeds.grant_death_grace()
 	# esperar un frame antes de reaparecer: load_game() borra las piezas
@@ -51,18 +146,18 @@ func _respawn_beside_bed() -> void:
 				best_dist = dist
 				bed = piece
 	if not bed:
-		print("[needs] sin cama construida — despierta donde cayó")
+		DevMode.debug_log("needs", "sin cama construida — despierta donde cayó")
 		return
 
 	var spot: Variant = _free_spot_beside(bed, player)
 	if spot == null:
-		print("[needs] sin lugar libre al lado de la cama — despierta donde cayó")
+		DevMode.debug_log("needs", "sin lugar libre al lado de la cama — despierta donde cayó")
 		return
 	# +0.2 de altura: la cama snapea a nivel de grilla pero el piso construido
 	# tiene ~0.1 de espesor — mejor caer esos centímetros que nacer incrustada.
 	player.global_position = spot + Vector3(0, 0.2, 0)
 	player.velocity = Vector3.ZERO
-	print("[needs] despertó al lado de la cama en %s" % [spot])
+	DevMode.debug_log("needs", "despertó al lado de la cama en %s" % [spot])
 
 ## Busca un lugar libre pegado a la cama probando los cuatro costados (en el
 ## espacio local de la cama, para que acompañe su rotación): primero los dos
@@ -91,76 +186,6 @@ func _free_spot_beside(bed: Node3D, player: CharacterBody3D) -> Variant:
 			return spot
 	return null
 
-func save_game() -> void:
-	var build_system: Node = get_tree().get_first_node_in_group("build_system")
-	var world: Node = get_tree().current_scene
-	var data := {
-		"money": Economy.money,
-		"purchased_items": Economy.purchased_items,
-		"pieces": build_system.serialize_pieces() if build_system else [],
-		"crops": world.serialize_crops() if world and world.has_method("serialize_crops") else [],
-		"inventory": Hotbar.get_save_data(),
-		"backpack": Backpack.get_save_data(),
-		"player_needs": PlayerNeeds.get_save_data(),
-	}
-	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
-	if not file:
-		push_error("[save] no se pudo abrir %s para escribir (error=%d) — la partida NO se guardó" % [SAVE_PATH, FileAccess.get_open_error()])
-		return
-	file.store_string(JSON.stringify(data))
-	_print_save_summary(data)
-
-## Lista en detalle qué se guardó, desglosando "pieces" por categoría —
-## para poder ver de un vistazo si algo colocado en el mundo no llegó a
-## contarse (ej. el bug de los pisos que no se guardaban).
-func _print_save_summary(data: Dictionary) -> void:
-	var pieces: Array = data["pieces"]
-	var by_category: Dictionary = {}
-	for entry in pieces:
-		var category: String = entry.get("category", "?")
-		by_category[category] = by_category.get(category, 0) + 1
-
-	print("[save] ---- partida guardada ----")
-	print("[save] money=%d" % data["money"])
-	print("[save] purchased_items=%s" % [data["purchased_items"].keys()])
-	print("[save] hotbar items=%s selected_slot=%s" % [data["inventory"]["items"], data["inventory"]["selected_slot"]])
-	print("[save] backpack items=%s" % [data["backpack"]["items"]])
-	print("[save] player_needs=%s" % [data["player_needs"]])
-	print("[save] crops guardados=%d" % data["crops"].size())
-	print("[save] pieces guardadas=%d -> %s" % [pieces.size(), by_category])
-	print("[save] ------------------------------")
-
-func load_game() -> void:
-	if not FileAccess.file_exists(SAVE_PATH):
-		return
-
-	var file := FileAccess.open(SAVE_PATH, FileAccess.READ)
-	var data = JSON.parse_string(file.get_as_text())
-	if typeof(data) != TYPE_DICTIONARY:
-		return
-
-	Economy.money = data.get("money", 0)
-	Economy.purchased_items = data.get("purchased_items", {})
-	Economy.money_changed.emit(Economy.money)
-	# el "if data.has(...)" es para no pisar el inventario default (con la
-	# semilla inicial) si el archivo de guardado es viejo y todavía no tiene
-	# esta clave — si la tiene, se restaura tal cual (aunque esté vacía).
-	if data.has("inventory"):
-		Hotbar.apply_save_data(data["inventory"])
-	if data.has("backpack"):
-		Backpack.apply_save_data(data["backpack"])
-	if data.has("player_needs"):
-		PlayerNeeds.apply_save_data(data["player_needs"])
-
-	var build_system: Node = get_tree().get_first_node_in_group("build_system")
-	if build_system:
-		build_system.clear_pieces()
-		build_system.load_pieces(data.get("pieces", []))
-
-	var world: Node = get_tree().current_scene
-	if world and world.has_method("load_crops"):
-		world.load_crops(data.get("crops", []))
-
 ## Borra el archivo de guardado y vuelve todos los autoloads persistibles a su
 ## estado de partida nueva, después recarga la escena actual para que el mundo
 ## (piezas construidas, cultivos) también arranque de cero. Separado acá a
@@ -174,5 +199,5 @@ func reset_game() -> void:
 	Hotbar.reset()
 	Backpack.reset()
 	PlayerNeeds.reset()
-	print("[save] partida reiniciada, recargando escena")
+	DevMode.debug_log("save", "partida reiniciada, recargando escena")
 	get_tree().reload_current_scene()

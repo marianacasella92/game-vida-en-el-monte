@@ -1,4 +1,4 @@
-[gd_scene load_steps=22 format=3]
+[gd_scene load_steps=23 format=3]
 
 [ext_resource type="Script" path="res://scripts/player.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/build/build_system.gd" id="2"]
@@ -21,6 +21,7 @@
 [ext_resource type="Script" path="res://scripts/ui/pause_menu_ui.gd" id="18"]
 [ext_resource type="FontFile" path="res://assets/hud/fonts/Syne_Mono/SyneMono-Regular.ttf" id="19"]
 [ext_resource type="Shader" path="res://scenes/ui/low_health_vignette.gdshader" id="20"]
+[ext_resource type="AudioStream" path="res://assets/fx/breath.ogg" id="22"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1"]
 radius = 0.4
@@ -191,6 +192,9 @@ value = 100.0
 texture_under = ExtResource("14")
 nine_patch_stretch = true
 fill_mode = 0
+
+[node name="BreathAudio" type="AudioStreamPlayer" parent="Hud"]
+stream = ExtResource("22")
 
 [node name="DeathMessage" type="Label" parent="Hud"]
 visible = false

@@ -5,6 +5,12 @@ extends Node3D
 ## (nodo "SitSpot" de la pieza) y muestra el mini-juego de "dar clase en
 ## vivo" (attention_minigame.gd) encima.
 
+## Registrado en UIState como &"work" mientras dura la sesión. `is_working`
+## se mantiene como estado propio porque no es solo "pantalla abierta":
+## PlayerNeeds lo consulta para el desgaste de sueño por esfuerzo
+## (_is_exerting), que es gameplay, no UI.
+const MODAL_ID := &"work"
+
 var is_working: bool = false
 
 @onready var player: CharacterBody3D = get_parent()
@@ -32,6 +38,7 @@ func start_working(desk: Node3D) -> void:
 	head.rotation.x = 0.0
 
 	is_working = true
+	UIState.open(MODAL_ID)
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	work_panel.visible = true
 	minigame.start_session()
@@ -41,6 +48,7 @@ func stop_working() -> void:
 		return
 
 	is_working = false
+	UIState.close(MODAL_ID)
 	player.global_transform = _saved_transform
 	head.rotation.x = _saved_head_pitch
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED

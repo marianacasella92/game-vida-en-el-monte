@@ -8,11 +8,6 @@ extends CharacterBody3D
 @export var max_pitch_deg: float = 80.0
 
 @onready var head: Node3D = $Head
-@onready var build_system: Node = $BuildSystem
-@onready var work_system: Node = $WorkSystem
-@onready var phone_system: Node = $PhoneSystem
-@onready var inventory_system: Node = $InventorySystem
-@onready var pause_system: Node = $PauseSystem
 @onready var arms: Node = $Head/Camera3D/Arms
 
 var current_tool_id: String = ""
@@ -28,12 +23,12 @@ func _ready() -> void:
 func _on_inventory_changed() -> void:
 	var selected_item: Dictionary = Hotbar.get_selected_item()
 	current_tool_id = selected_item.get("id", "")
-	print("[player] inventory changed selected=", current_tool_id, " slot=", Hotbar.selected_slot)
+	DevMode.debug_log("player", "inventory changed selected=%s slot=%d" % [current_tool_id, Hotbar.selected_slot])
 	if arms and arms.has_method("update_from_inventory"):
 		arms.update_from_inventory()
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED and not build_system.menu_open and not work_system.is_working and not phone_system.is_open and not inventory_system.is_open and not pause_system.is_open:
+	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED and not UIState.is_any_modal_open():
 		rotate_y(-event.relative.x * mouse_sensitivity)
 		head.rotate_x(-event.relative.y * mouse_sensitivity)
 		head.rotation.x = clamp(head.rotation.x, deg_to_rad(min_pitch_deg), deg_to_rad(max_pitch_deg))
@@ -53,7 +48,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			break
 
 func _physics_process(delta: float) -> void:
-	if work_system.is_working or phone_system.is_open or inventory_system.is_open or pause_system.is_open:
+	# cualquier pantalla modal congela el movimiento — incluye ahora también
+	# el catálogo de construcción (antes se podía caminar con él abierto, una
+	# inconsistencia heredada de cuando cada guarda se escribía a mano).
+	if UIState.is_any_modal_open():
 		return
 
 	if not is_on_floor():

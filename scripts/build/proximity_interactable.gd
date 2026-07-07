@@ -43,21 +43,9 @@ func _on_body_exited(body: Node3D) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if not (_player and event.is_action_pressed("interact")):
 		return
-	if _any_modal_open():
+	if UIState.is_any_modal_open():
 		return
 	_on_interact()
-
-func _any_modal_open() -> bool:
-	var phone_system := get_tree().get_first_node_in_group("phone_system")
-	if phone_system and phone_system.is_open:
-		return true
-	var inventory_system := get_tree().get_first_node_in_group("inventory_system")
-	if inventory_system and inventory_system.is_open:
-		return true
-	var pause_system := get_tree().get_first_node_in_group("pause_system")
-	if pause_system and pause_system.is_open:
-		return true
-	return false
 
 ## Cada pieza concreta sobreescribe esto con su propia acción (dormir,
 ## empezar a trabajar, etc.) — lo único que le hace falta escribir.
